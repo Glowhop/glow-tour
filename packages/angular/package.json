@@ -1,0 +1,13 @@
+{
+  "name": "@glowhop/angular-tour",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/public-api.ts"
+  },
+  "dependencies": {
+    "@angular/common": "^18.2.13",
+    "@angular/core": "^18.2.13",
+    "@glowhop/core-tour": "workspace:*"
+  }
+}

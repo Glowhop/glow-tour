@@ -1,0 +1,14 @@
+{
+  "name": "@glowhop/react-tour",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@glowhop/core-tour": "workspace:*",
+    "@types/react": "^18.3.18",
+    "@glowhop/react-observables": "^1.1.1",
+    "react": "^18.3.1"
+  }
+}

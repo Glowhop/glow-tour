@@ -1,0 +1,11 @@
+{
+  "name": "@glowhop/vanilla-tour",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@glowhop/core-tour": "workspace:*"
+  }
+}

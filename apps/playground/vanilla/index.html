@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glow Tour Vanilla</title>
+  </head>
+  <body>
+    <main class="app-screen">
+      <a class="back-link" href="/">Playground</a>
+      <section class="app-panel">
+        <h1>Vanilla app</h1>
+        <button type="button" data-start-tour>Start tour</button>
+        <span id="vanilla-tour-id" class="target-pill">AHHH</span>
+
+        <glow-tour-root>
+          <glow-tour-overlay></glow-tour-overlay>
+          <glow-tour-popover>
+            <glow-tour-header></glow-tour-header>
+            <glow-tour-content></glow-tour-content>
+            <glow-tour-footer>
+              <glow-tour-previous-trigger previous-label="prev"></glow-tour-previous-trigger>
+              <glow-tour-next-trigger
+                finish-label="finish"
+                next-label="next"
+              ></glow-tour-next-trigger>
+            </glow-tour-footer>
+          </glow-tour-popover>
+        </glow-tour-root>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
