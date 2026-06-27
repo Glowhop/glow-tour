@@ -30,8 +30,8 @@ export function Root({
       aria-labelledby={ariaLabelledby}
       data-glow-tour-root
       id={id}
-      ref={(element: unknown) => {
-        glowTour.state.registerElement("popover", element);
+      ref={(element) => {
+        glowTour.state.registerElementPopover(element);
       }}
       tabIndex={-1}
       role={role}
@@ -91,7 +91,7 @@ export function Overlay({
       data-glow-tour-overlay
       focusable="false"
       ref={(element) => {
-        glowTour.state.registerElement("overlay", element);
+        glowTour.state.registerElementOverlay(element);
       }}
       role="presentation"
       viewBox={viewBox}
@@ -130,7 +130,6 @@ export function PreviousTrigger({
     "aria-keyshortcuts": ariaKeyshortcuts,
     "aria-label": ariaLabel || label,
     disabled: isDisabled,
-    isDisabled: isDisabled,
     type: "button",
     "data-action": "previous",
     "data-glow-tour-previous-trigger": true,
@@ -184,7 +183,6 @@ export function NextTrigger({
     "aria-keyshortcuts": ariaKeyshortcuts,
     "aria-label": ariaLabel || label,
     disabled: isDisabled,
-    isDisabled: isDisabled,
     type: "button",
     "data-action": "next",
     "data-glow-tour-next-trigger": true,

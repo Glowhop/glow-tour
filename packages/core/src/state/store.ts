@@ -33,99 +33,19 @@ function wait(timeMs: number) {
 
 type ListenerCleanup = () => void;
 
-function contentToText(value: unknown) {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (value && typeof value === "object") {
-    if ("text" in value && typeof value.text === "string") {
-      return value.text;
-    }
-
-    if ("id" in value && typeof value.id === "string") {
-      return value.id;
-    }
-  }
-
-  return "";
-}
-
-function viewportDimensions() {
-  return {
-    width: typeof window === "undefined" ? 1024 : window.innerWidth,
-    height: typeof window === "undefined" ? 768 : window.innerHeight,
-  };
-}
-
-function roundedRectPath(
-  rect: DOMRect,
-  viewport: { width: number; height: number },
-  options: { padding?: number; radius?: number } = {},
-) {
-  const padding = options.padding ?? DEFAULT_OVERLAY_PADDING;
-  const radius = options.radius ?? DEFAULT_OVERLAY_RADIUS;
-  const x = Math.round(rect.left - padding);
-  const y = Math.round(rect.top - padding);
-  const width = Math.round(rect.width + padding * 2);
-  const height = Math.round(rect.height + padding * 2);
-  const right = x + width;
-  const bottom = y + height;
-  const corner = Math.max(0, Math.min(radius, width / 2, height / 2));
-
-  return [
-    `M0,0 H${Math.round(viewport.width)} V${Math.round(viewport.height)} H0 Z`,
-    `M${x},${y + corner}`,
-    `Q${x},${y} ${x + corner},${y}`,
-    `H${right - corner}`,
-    `Q${right},${y} ${right},${y + corner}`,
-    `V${bottom - corner}`,
-    `Q${right},${bottom} ${right - corner},${bottom}`,
-    `H${x + corner}`,
-    `Q${x},${bottom} ${x},${bottom - corner}`,
-    "Z",
-  ].join(" ");
-}
-
-function setStyle(element: HTMLElement | SVGElement, name: string, value: string) {
-  if (typeof element.style.setProperty === "function") {
-    element.style.setProperty(name, value);
-    return;
-  }
-
-  (element.style as unknown as Record<string, string>)[name] = value;
-}
-
-function toggleElementAttribute(element: Element, name: string, enabled: boolean) {
-  if (typeof element.toggleAttribute === "function") {
-    element.toggleAttribute(name, enabled);
-    return;
-  }
-
-  if (enabled) {
-    element.setAttribute(name, "");
-    return;
-  }
-
-  if (typeof element.removeAttribute === "function") {
-    element.removeAttribute(name);
-  }
-}
-
 export class TourStore {
   // readonly state = this;
-  readonly status = new Observable<WorkflowStatus>("idle");
+  readonly status = new Observable<WorkflowStatus>("not-started");
 
   readonly currentStepIndex = new Observable(-1);
-  // readonly currentStep = new Observable<StepDefinition | null>(null);
 
   readonly direction = new Observable<WorkflowDirection>("next");
 
-  // readonly canGoNext = new Observable(false);
-  // readonly canGoPrevious = new Observable(false);
-  // readonly canCancel = new Observable(true);
-  // readonly isFirstStep = new Observable(false);
-  // readonly isLastStep = new Observable(false);
+  readonly canGoNext = new Observable(false);
+  readonly canGoPrevious = new Observable(false);
+  readonly canCancel = new Observable(true);
+  readonly isFirstStep = new Observable(false);
+  readonly isLastStep = new Observable(false);
 
   readonly snapshot: Observable<WorkflowState>;
 
@@ -142,14 +62,14 @@ export class TourStore {
 
   constructor(workflow?: WorkflowDefinition) {
     if (workflow) {
-      this.setWorkflow(workflow);
+      this._setWorkflow(workflow);
     }
-    this.snapshot = new Observable<WorkflowState>(this.createSnapshot());
+    this.snapshot = new Observable<WorkflowState>(this._createSnapshot());
   }
 
-  getWorkflow() {
-    return this.workflow;
-  }
+  // getWorkflow() {
+  //   return this.workflow;
+  // }
 
   get() {
     return this.snapshot.get();
@@ -159,64 +79,102 @@ export class TourStore {
     return this.snapshot.subscribe(listener);
   }
 
-  registerElement(name: "popover" | "overlay", element: HTMLElement | SVGSVGElement | null) {
-    this.elementListenerCleanups.get(name)?.();
-    this.elementListenerCleanups.delete(name);
-
-    const isPopover = name === "popover";
+  registerElementOverlay(element: SVGSVGElement | null) {
+    // this.elementListenerCleanups.get(name)?.();
+    // this.elementListenerCleanups.delete(name);
 
     if (element) {
-      if (isPopover) {
-        this.popover = new PopoverElement(element);
-      } else {
-        this.overlay = new OverlayElement(element);
-      }
+      this.overlay = new OverlayElement(element);
     } else {
-      if (isPopover) {
-        this.popover = null;
-      } else {
-        this.overlay = null;
-      }
+      this.overlay = null;
     }
 
-    this.syncRegisteredElements();
+    this._syncRegisteredElements();
   }
 
-  // getElement(name: GlowTourElementName) {
-  //   return this.elements.get(name) ?? null;
-  // }
+  registerElementPopover(element: HTMLElement | null) {
+    // this.elementListenerCleanups.get(name)?.();
+    // this.elementListenerCleanups.delete(name);
+
+    if (element) {
+      this.popover = new PopoverElement(element);
+    } else {
+      this.popover = null;
+    }
+
+    this._syncRegisteredElements();
+  }
+
+  private async _appearElements() {
+    if (!this.overlay || !this.popover) {
+      !this.overlay && console.warn("No overlay element registered");
+      !this.popover && console.warn("No popover element registered");
+      return;
+    }
+
+    const step = this._getCurrentWorkflowStep();
+    if (!step) {
+      console.warn("No current step found for appearElements");
+      return;
+    }
+    const target = await this._resolveTargetForStep(step.definition);
+    if (!target) {
+      console.warn("No target element found for appearElements");
+      return;
+    }
+    const targetPosition = target.getBoundingClientRect();
+
+    return Promise.allSettled([
+      this.overlay.show(targetPosition, step.definition),
+      this.popover.show(targetPosition, step.definition),
+    ]);
+  }
+
+  private _disappearElements() {
+    if (!this.overlay || !this.popover) {
+      !this.overlay && console.warn("No overlay element registered");
+      !this.popover && console.warn("No popover element registered");
+      return;
+    }
+    return Promise.allSettled([this.overlay.hide(), this.popover.hide()]);
+  }
 
   async start(workflow = this.workflow) {
     if (!workflow) {
       throw new Error("Cannot start a tour without a workflow");
     }
 
-    this.setWorkflow(workflow);
+    this._setWorkflow(workflow);
     this.error = null;
-    this.setStatus("starting");
+
+    this._setStatus("starting");
+
     workflow.options.onStart?.();
 
     if (this.steps.length === 0) {
-      this.setStatus("finished");
+      this._setStatus("finished");
       workflow.options.onFinish?.();
       return;
     }
 
+    await this._disappearElements();
     await this.goTo(0, "next");
   }
 
   async next() {
-    const step = this.getCurrentWorkflowStep();
+    const step = this._getCurrentWorkflowStep();
     if (!step) {
       return;
     }
 
-    this.runTransitionAction(step.nextAction);
+    this._runTransitionAction(step.nextAction);
+
     const nextIndex = this.currentStepIndex.get() + 1;
     if (nextIndex >= this.steps.length) {
-      this.detachListeners();
-      this.setStatus("finished");
+      this._detachListeners();
+      this._setStatus("finished");
       this.workflow?.options.onFinish?.();
+      await this._disappearElements();
       return;
     }
 
@@ -224,12 +182,12 @@ export class TourStore {
   }
 
   async previous() {
-    const step = this.getCurrentWorkflowStep();
+    const step = this._getCurrentWorkflowStep();
     if (!step) {
       return;
     }
 
-    this.runTransitionAction(step.previousAction);
+    this._runTransitionAction(step.previousAction);
     const previousIndex = this.currentStepIndex.get() - 1;
     if (previousIndex < 0) {
       await this.cancel();
@@ -240,19 +198,44 @@ export class TourStore {
   }
 
   async cancel() {
-    if (!this.isCancellable()) {
+    if (!this._isCancellable()) {
       return;
     }
 
-    const step = this.getCurrentWorkflowStep();
+    const step = this._getCurrentWorkflowStep();
     if (step) {
-      this.runTransitionAction(step.cancelAction);
+      this._runTransitionAction(step.cancelAction);
     }
 
-    this.detachListeners();
-    this.currentStep.set(null);
-    this.setStatus("cancelled");
+    this._detachListeners();
+    this._setStatus("cancelled");
     this.workflow?.options.onCancel?.();
+    await this._disappearElements();
+  }
+
+  private async _movePopover(target: HTMLElement, step: StepDefinition) {
+    const popover = this.popover;
+    if (!popover) {
+      console.warn("No popover element registered");
+      return;
+    }
+    if (!popover.isShown()) {
+      console.warn("popover not shown");
+    }
+
+    popover.moveToTarget(target.getBoundingClientRect(), step);
+  }
+
+  private async _moveOverlay(target: HTMLElement, step: StepDefinition) {
+    const overlay = this.overlay;
+    if (!overlay) {
+      console.warn("No overlay element registered");
+      return;
+    }
+    if (!overlay.isShown()) {
+      console.warn("overlay not shown");
+    }
+    overlay.moveToTarget(target.getBoundingClientRect(), step);
   }
 
   async goTo(index: number, direction: WorkflowDirection = "next") {
@@ -260,29 +243,38 @@ export class TourStore {
       throw new Error(`Step index ${index} is out of bounds`);
     }
 
-    this.detachListeners();
+    this._detachListeners();
     this.direction.set(direction);
     this.currentStepIndex.set(index);
 
-    const step = this.steps[index]!;
-    const target = await this.resolveTargetForStep(step.definition);
+    const step = this.steps[index];
+    const target = await this._resolveTargetForStep(step.definition);
     if (!target) {
+      console.warn(`Target element for step ${index} not found: ${step.definition.target}`);
       return;
     }
 
-    this.currentStep.set(step.definition);
-    this.syncDerivedState();
-    this.setStatus("running");
-    this.attachListeners(step);
-    await this.runActions(step.actions);
+    this._setStatus("running");
+
+    await Promise.allSettled([
+      this._movePopover(target, step.definition),
+      this._moveOverlay(target, step.definition),
+    ]);
+
+    this._setStatus("idle");
+
+    this._syncDerivedState();
+    this._attachListeners(step);
+
+    await this._runActions(step.actions);
   }
 
   destroy() {
-    this.detachListeners();
-    this.detachElementListeners();
+    this._detachListeners();
+    this._detachElementListeners();
   }
 
-  private setWorkflow(workflow: WorkflowDefinition) {
+  private _setWorkflow(workflow: WorkflowDefinition) {
     this.workflow = workflow;
     this.steps.splice(
       0,
@@ -290,11 +282,10 @@ export class TourStore {
       ...workflow.steps.map((step) => new WorkflowStep(step)),
     );
     this.currentStepIndex.set(-1);
-    this.currentStep.set(null);
-    this.syncDerivedState();
+    this._syncDerivedState();
   }
 
-  private async resolveTargetForStep(step: StepDefinition): Promise<HTMLElement | null> {
+  private async _resolveTargetForStep(step: StepDefinition): Promise<HTMLElement | null> {
     const element = document.querySelector<HTMLElement>(step.target);
     if (element) {
       return element;
@@ -304,7 +295,7 @@ export class TourStore {
     if (strategy === "skip") {
       const nextIndex = this.currentStepIndex.get() + 1;
       if (nextIndex >= this.steps.length) {
-        this.setStatus("finished");
+        this._setStatus("finished");
         this.workflow?.options.onFinish?.();
       } else {
         await this.goTo(nextIndex, "next");
@@ -325,34 +316,33 @@ export class TourStore {
     }
 
     this.error = new Error(`Missing target: ${step.target}`);
-    this.setStatus("error");
+    this._setStatus("error");
     return null;
   }
 
-  private setStatus(status: WorkflowStatus) {
+  private _setStatus(status: WorkflowStatus) {
     this.status.set(status);
-    this.syncDerivedState();
+    this._syncDerivedState();
   }
 
-  private syncDerivedState() {
+  private _syncDerivedState() {
     const index = this.currentStepIndex.get();
     const totalSteps = this.steps.length;
 
     this.canGoPrevious.set(index > 0);
     this.canGoNext.set(index >= 0 && index < totalSteps - 1);
-    this.canCancel.set(this.isCancellable());
+    this.canCancel.set(this._isCancellable());
     this.isFirstStep.set(index === 0 && totalSteps > 0);
     this.isLastStep.set(index === totalSteps - 1 && totalSteps > 0);
-    this.snapshot?.set(this.createSnapshot());
-    this.syncRegisteredElements();
+    this.snapshot?.set(this._createSnapshot());
+    this._syncRegisteredElements();
   }
 
-  private createSnapshot(): WorkflowState {
+  private _createSnapshot(): WorkflowState {
     return {
       name: this.workflow?.name ?? "",
       totalSteps: this.steps.length,
       currentStepIndex: this.currentStepIndex.get(),
-      currentStep: this.currentStep.get(),
       direction: this.direction.get(),
       canGoNext: this.canGoNext.get(),
       canGoPrevious: this.canGoPrevious.get(),
@@ -365,21 +355,21 @@ export class TourStore {
     };
   }
 
-  private getCurrentWorkflowStep() {
+  private _getCurrentWorkflowStep() {
     const index = this.currentStepIndex.get();
     return index >= 0 ? (this.steps[index] ?? null) : null;
   }
 
-  private isCancellable() {
+  private _isCancellable() {
     return this.workflow?.options.cancellable ?? true;
   }
 
-  private runTransitionAction(action: StepTransitionAction | null) {
+  private _runTransitionAction(action: StepTransitionAction | null) {
     if (!action) {
       return;
     }
 
-    const step = this.getCurrentWorkflowStep();
+    const step = this._getCurrentWorkflowStep();
 
     if (!step) {
       console.warn("No current step found for transition action");
@@ -388,12 +378,15 @@ export class TourStore {
     action(step.getElement(), step.props);
   }
 
-  private attachListeners(step: WorkflowStep) {
-    this.listenerCleanups = step.eventHandlers.map((handler) => this.attachListener(step, handler));
+  private _attachListeners(step: WorkflowStep) {
+    //! update on resize, scroll, etc
+    this.listenerCleanups = step.eventHandlers.map((handler) =>
+      this._attachListener(step, handler),
+    );
   }
 
   //! pas bon à délégué à l'élément
-  private attachElementListener(name: GlowTourElementName, element: Element) {
+  private attachElementListener() {
     if (name !== "previous-trigger" && name !== "next-trigger") {
       return;
     }
@@ -415,25 +408,25 @@ export class TourStore {
     this.elementListenerCleanups.set(name, () => element.removeEventListener("click", listener));
   }
 
-  private detachElementListeners() {
+  private _detachElementListeners() {
     for (const cleanup of this.elementListenerCleanups.values()) {
       cleanup();
     }
     this.elementListenerCleanups.clear();
   }
 
-  private syncRegisteredElements() {
-    const state = this.createSnapshot();
+  private _syncRegisteredElements() {
+    const state = this._createSnapshot();
     const step = state.currentStep;
     const isRunning = state.status === "running" && !!step;
 
-    this.syncElementState(this.elements.get("root"), state, step);
-    this.syncPopover(isRunning, step);
-    this.syncOverlay(isRunning, step);
-    this.syncTriggers(state);
+    this._syncElementState(this.elements.get("root"), state, step);
+    // this._syncPopover(isRunning, step);
+    // this._syncOverlay(isRunning, step);
+    this._syncTriggers(state);
   }
 
-  private syncElementState(
+  private _syncElementState(
     element: Element | undefined,
     state: WorkflowState,
     step: StepDefinition | null,
@@ -469,122 +462,27 @@ export class TourStore {
     }
   }
 
-  private syncPopover(isRunning: boolean, step: StepDefinition | null) {
-    const popover = this.elements.get("popover") as HTMLElement | undefined;
-    const header = this.elements.get("header") as HTMLElement | undefined;
-    const content = this.elements.get("content") as HTMLElement | undefined;
-
-    if (!popover) {
-      return;
-    }
-
-    this.syncElementState(popover, this.createSnapshot(), step);
-    popover.hidden = !isRunning;
-    if (!isRunning || !step) {
-      return;
-    }
-
-    //! pas bon à délégué à l'élément
-    if (header) {
-      header.textContent = contentToText(step.presentation.title);
-    }
-
-    if (content) {
-      content.textContent = contentToText(step.presentation.content);
-    }
-
-    const target = document.querySelector<HTMLElement>(step.target);
-    if (!target || typeof target.getBoundingClientRect !== "function") {
-      return;
-    }
-
-    const rect = target.getBoundingClientRect();
-    const viewport = viewportDimensions();
-    const gap = 14;
-    const left = Math.max(16, Math.min(rect.left, viewport.width - DEFAULT_POPOVER_WIDTH - 16));
-    const below = rect.bottom + gap;
-    const top =
-      below + DEFAULT_POPOVER_HEIGHT < viewport.height
-        ? below
-        : Math.max(16, rect.top - DEFAULT_POPOVER_HEIGHT - gap);
-
-    //todo pas bon
-    popover.style.position = "fixed";
-    popover.style.left = `${Math.round(left)}px`;
-    popover.style.top = `${Math.round(top)}px`;
-  }
-
-  private syncOverlay(isRunning: boolean, step: StepDefinition | null) {
-    const overlay = this.elements.get("overlay") as SVGSVGElement | undefined;
-    if (!overlay) {
-      return;
-    }
-
-    this.syncElementState(overlay, this.createSnapshot(), step);
-    toggleElementAttribute(overlay, "hidden", !isRunning);
-    if (!isRunning || !step) {
-      return;
-    }
-
-    if (
-      typeof document.querySelector !== "function" ||
-      typeof overlay.querySelector !== "function"
-    ) {
-      return;
-    }
-
-    const target = document.querySelector<HTMLElement>(step.target);
-    const path = overlay.querySelector<SVGPathElement>("[data-glow-tour-overlay-path]");
-    if (!target || !path || typeof target.getBoundingClientRect !== "function") {
-      return;
-    }
-
-    const viewport = viewportDimensions();
-    const overlayOptions = {
-      padding: step.overlay?.padding ?? this.workflow?.options.overlay?.padding,
-      radius: step.overlay?.radius ?? this.workflow?.options.overlay?.radius,
-    };
-    const rect = target.getBoundingClientRect();
-    //!pas bon
-    overlay.setAttribute(
-      "viewBox",
-      `0 0 ${Math.round(viewport.width)} ${Math.round(viewport.height)}`,
-    );
-    path.setAttribute("fill-rule", "evenodd");
-    path.setAttribute(
-      "fill",
-      step.overlay?.color ?? this.workflow?.options.overlay?.color ?? DEFAULT_OVERLAY_COLOR,
-    );
-    path.setAttribute(
-      "fill-opacity",
-      String(
-        step.overlay?.opacity ?? this.workflow?.options.overlay?.opacity ?? DEFAULT_OVERLAY_OPACITY,
-      ),
-    );
-    path.setAttribute("d", roundedRectPath(rect, viewport, overlayOptions));
-  }
-
   //todo pas bon
-  private syncTriggers(state: WorkflowState) {
+  private _syncTriggers(state: WorkflowState) {
     const previous = this.elements.get("previous-trigger") as HTMLButtonElement | undefined;
     const next = this.elements.get("next-trigger") as HTMLButtonElement | undefined;
 
     if (previous) {
-      this.syncElementState(previous, state, state.currentStep);
+      this._syncElementState(previous, state, state.currentStep);
       previous.disabled = !state.canGoPrevious || state.status !== "running";
       previous.toggleAttribute("disabled", previous.disabled);
       previous.setAttribute("aria-disabled", String(previous.disabled));
     }
 
     if (next) {
-      this.syncElementState(next, state, state.currentStep);
+      this._syncElementState(next, state, state.currentStep);
       next.disabled = state.status !== "running";
       next.toggleAttribute("disabled", next.disabled);
       next.setAttribute("aria-disabled", String(next.disabled));
     }
   }
 
-  private attachListener(step: WorkflowStep, handler: EventHandler) {
+  private _attachListener(step: WorkflowStep, handler: EventHandler) {
     const target = step.getElement() ?? document;
     const listener: EventListener = async (event) => {
       await handler.callback(
@@ -602,16 +500,16 @@ export class TourStore {
     };
   }
 
-  private detachListeners() {
+  private _detachListeners() {
     for (const cleanup of this.listenerCleanups) {
       cleanup();
     }
     this.listenerCleanups = [];
   }
 
-  private async runActions(actions: StepActionInstruction[]) {
+  private async _runActions(actions: StepActionInstruction[]) {
     for (const action of actions) {
-      const activeStep = this.getCurrentWorkflowStep();
+      const activeStep = this._getCurrentWorkflowStep();
       if (!activeStep) {
         return;
       }

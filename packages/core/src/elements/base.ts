@@ -1,91 +1,106 @@
+import type { StepDefinition } from "../types";
+
 const DEFAULT_ANIMATION_DURATION = 180;
 const DEFAULT_ANIMATION_EASING = "ease-out";
 
+const APPEAR_KEYFRAME = {
+  opacity: 1,
+  scale: 1,
+};
+
+const DISAPPEAR_KEYFRAME = {
+  opacity: 0,
+  scale: 0.8,
+};
 
 export default abstract class GlowTourElement {
+  constructor(
+    protected element: HTMLElement | SVGSVGElement,
+    public options?: { duration?: number; easing?: string },
+  ) {}
 
-    constructor(private element: HTMLElement, public options?: { duration?: number; easing?: string }) {
+  protected _getAnimationOptions() {
+    return {
+      duration: this.options?.duration ?? DEFAULT_ANIMATION_DURATION,
+      easing: this.options?.easing ?? DEFAULT_ANIMATION_EASING,
+    };
+  }
 
+  protected _appear(position: DOMRect, step: StepDefinition): Animation | null {
+    if (!this.element) return null;
+
+    const defaultStyles = this._getNextStyles(position, step);
+
+    for (const [key, value] of Object.entries(defaultStyles)) {
+      value != null && this.element.style.setProperty(key, String(value));
     }
 
-    private _getAnimationOptions() {
-        return {
-            duration: this.options?.duration ?? DEFAULT_ANIMATION_DURATION,
-            easing: this.options?.easing ?? DEFAULT_ANIMATION_EASING,
-        };
+    return this.element.animate(APPEAR_KEYFRAME, this._getAnimationOptions());
+  }
+  protected _disappear(): Animation | null {
+    if (!this.element) return null;
+
+    const animation = [DISAPPEAR_KEYFRAME];
+
+    return this.element.animate(animation, this._getAnimationOptions());
+  }
+
+  protected abstract _getNextStyles(position: DOMRect, step: StepDefinition): Keyframe;
+
+  //   abstract updatePosition(position: DOMRect): Keyframe;
+
+  abstract moveToTarget(nextPosition: DOMRect, step: StepDefinition): Promise<void>;
+
+  isShown() {
+    if (!this.element) return false;
+    return this.element.dataset.show === "true";
+  }
+
+  getElement(): HTMLElement | SVGSVGElement | null {
+    return this.element;
+  }
+
+  show(nextPosition: DOMRect, step: StepDefinition) {
+    const el = this.getElement();
+    if (!el) return;
+
+    const anim = this._appear(nextPosition, step);
+
+    const onFinish = () => {
+      el.dataset.show = "true";
+    };
+
+    //on attend la fin de l'animation pour clear
+    if (!anim) {
+      console.warn("no animation found");
+      onFinish();
+    } else {
+      anim.onfinish = onFinish;
+      anim.oncancel = onFinish;
     }
 
-    private _appear(): Animation | null {
-        if (!this.element) return null
+    return anim;
+  }
 
-        const animation = this.getAppearKeyframes();
+  hide() {
+    const el = this.getElement();
+    if (!el) return;
 
-        return this.element.animate(animation, this._getAnimationOptions());
-    }
-    private _disappear(): Animation | null {
-        if (!this.element) return null;
+    const anim = this._disappear();
 
-        const animation = this.getAppearKeyframes().reverse();
+    const onFinish = () => {
+      el.dataset.show = "false";
+    };
 
-        return this.element.animate(animation, this._getAnimationOptions());
-    }
-
-
-    protected abstract getAppearKeyframes(): [Keyframe, Keyframe];
-
-    //permet de faire fonctionner les variables CSS
-    //ex: ajoute transform: translate(var(--tooltip-x), var(--tooltip-y))
-    protected abstract enableSync(): void;
-
-    //permet de stopper les effets des variables CSS
-    //ex: supprime transform: translate(var(--tooltip-x), var(--tooltip-y))
-    protected abstract disableSync(): void;
-
-    protected abstract getPreviousKeyframe(): Keyframe;
-
-    protected abstract getNextkeyframe(): Keyframe;
-
-    protected abstract move(): void;
-
-    isShown() {
-        if (!this.element) return false;
-        return this.element.dataset.show === "true";
+    //on attend la fin de l'animation pour clear
+    if (!anim) {
+      console.warn("no animation found");
+      onFinish();
+    } else {
+      anim.onfinish = onFinish;
+      anim.oncancel = onFinish;
     }
 
-    getElement(): HTMLElement | null {
-        return this.element;
-    }
-
-    setShow(show: boolean) {
-        const el = this.getElement();
-        if (!el) return;
-
-        // on ajoute directement les CSS variables pour voir les animations
-        if (show) {
-            //on ajoute transform CSS variables
-            this.enableSync();
-            el.dataset.show = "true";
-        }
-
-        const anim = show ? this._appear() : this._disappear();
-
-        if (!show) {
-            const onFinish = () => {
-                el.dataset.show = "false";
-                // on supprime transform CSS variables
-                this.disableSync();
-            };
-
-            //on attend la fin de l'animation pour clear
-            if (!anim) {
-                console.warn("no animation found");
-                onFinish();
-            } else {
-                anim.onfinish = onFinish;
-                anim.oncancel = onFinish;
-            }
-        }
-
-        return anim;
-    }
+    return anim;
+  }
 }

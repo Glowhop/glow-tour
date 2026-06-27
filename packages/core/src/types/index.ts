@@ -4,6 +4,7 @@ import type { ContentValue, PrimitiveValue } from "../content";
 export type TargetResolver = string;
 
 export type WorkflowStatus =
+  | "not-started"
   | "idle"
   | "starting"
   | "running"
@@ -37,7 +38,7 @@ export interface HighlightOptions {
   animate: boolean;
 }
 
-export interface HighlightStepOverrides extends Partial<HighlightOptions> { }
+export interface HighlightStepOverrides extends Partial<HighlightOptions> {}
 
 export interface WorkflowHighlightOptions extends Partial<HighlightOptions> {
   mountRoot?: HTMLElement | null;
@@ -50,23 +51,26 @@ export interface StepBehavior {
   autoNext?: boolean;
 }
 
+export type TryOrderOptions = "top" | "bottom" | "left" | "right";
+
 export interface OverlayOptions {
   color?: string;
   opacity?: number;
   padding?: number;
   radius?: number;
   disableInteractionIndicator?: boolean;
-  interactionIndicatorPlacementTryOrder?: ("top" | "bottom" | "left" | "right")[];
+  interactionIndicatorPlacementTryOrder?: TryOrderOptions[];
 }
 
 export interface PopoverOptions {
-  placementTryOrder?: ("top" | "bottom" | "left" | "right")[];
+  placementTryOrder?: TryOrderOptions[];
   disableArrow?: boolean;
   disableAnimation?: boolean;
   disableAutoFocus?: boolean;
   disableAutoScroll?: boolean;
   disableAutoPlacement?: boolean;
   hideProgressIndicator?: boolean;
+  gap?: number;
 }
 
 export interface StepPresentation {
@@ -102,7 +106,7 @@ export interface StartOptions {
     nextLabel?: string;
     cancelLabel?: string;
     finishLabel?: string;
-  }
+  };
   onStart?: () => void;
   onCancel?: () => void;
   onFinish?: () => void;
@@ -110,6 +114,7 @@ export interface StartOptions {
 
 export type StepPropsStore = Observable<StepPresentation>;
 export type StepActionResult = boolean | void;
+
 export type StepAction = (
   element: HTMLElement | null,
   stepProps: StepPropsStore,
@@ -162,7 +167,6 @@ export interface WorkflowState {
   isLastStep: boolean;
   status: WorkflowStatus;
   startOptions: StartOptions;
-  // workflow: WorkflowDefinition | null;
   error: Error | null;
 }
 
