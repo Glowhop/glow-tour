@@ -6,15 +6,6 @@ import GlowTourElement from "./base";
 const DEFAULT_OVERLAY_PADDING = 16;
 const DEFAULT_OVERLAY_RADIUS = 12;
 
-//fill-rule: evenodd; clip-rule: evenodd; stroke-linejoin: round; stroke-miterlimit: 2; z-index: 10000; position: fixed; top: 0px; left: 0px; width: 100%; height: 100%;
-
-export const DEFAULT_OVERLAY_STYLE = {
-  fill: "rgb(0, 0, 0)",
-  fillOpacity: "0.7",
-  pointerEvents: "auto",
-  cursor: "auto",
-};
-
 export default class OverlayElement<T> extends GlowTourElement<T> {
   moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>) {
     return new Promise<void>((resolve) => {
@@ -43,10 +34,9 @@ export default class OverlayElement<T> extends GlowTourElement<T> {
     });
 
     return {
-      ...DEFAULT_OVERLAY_STYLE,
       d: `path("${path}")`,
       fill: color,
-      fillOpacity: opacity != null ? String(opacity) : DEFAULT_OVERLAY_STYLE.fillOpacity,
+      opacity: opacity != null ? String(opacity) : 0.7,
     };
   }
 
@@ -69,7 +59,6 @@ export default class OverlayElement<T> extends GlowTourElement<T> {
     el.style.setProperty("clip-rule", "evenodd");
     el.style.setProperty("stroke-linejoin", "round");
     el.style.setProperty("stroke-miterlimit", "2");
-    el.style.setProperty("opacity", "0");
     el.style.setProperty("pointer-events", "none");
 
     el.setAttribute("aria-hidden", "true");
@@ -82,7 +71,7 @@ export default class OverlayElement<T> extends GlowTourElement<T> {
       return;
     }
 
-    path.setAttribute("opacity", "0.7");
+    path.setAttribute("opacity", "0");
     path.setAttribute("pointer-events", "auto");
     path.setAttribute("cursor", "auto");
 

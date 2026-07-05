@@ -16,8 +16,6 @@ import PopoverElement from "../elements/popover";
 import { isInViewport } from "../utils/utils";
 
 const DEFAULT_TARGET_TIMEOUT = 3000;
-const DEFAULT_ANIMATION_DURATION = 180;
-const DEFAULT_ANIMATION_EASING = "ease-out";
 
 function wait(timeMs: number) {
   return new Promise<void>((resolve) => {
@@ -172,19 +170,11 @@ export class TourStore<T> {
 
     const step = this._getCurrentWorkflowStep();
 
-    console.log("Current step:", {
-      step,
-      currentStepIndex: this.currentStepIndex.get(),
-      stepsLength: this.steps.length,
-      steps: this.steps,
-      workflow: this.workflow,
-    });
-
     if (!step) {
       console.warn("No current step found for appearElements");
       return;
     }
-    const target = await this._resolveTargetForStep(step.definition);
+    const target = await this._resolveTargetForStep(step, this.currentStepIndex.get());
     if (!target) {
       console.warn("No target element found for appearElements");
       return;
@@ -261,15 +251,14 @@ export class TourStore<T> {
 
     this._detachListeners();
     this.direction.set(direction);
-    this.currentStepIndex.set(index);
 
     const step = this.steps[index];
-    const target = await this._resolveTargetForStep(step.definition);
+    const target = await this._resolveTargetForStep(step, index);
     if (!target) {
       console.warn(`Target element for step ${index} not found: ${step.definition.target}`);
       return;
     }
-
+    this.currentStepIndex.set(index);
     this._setStatus("running");
 
     await Promise.allSettled([
@@ -301,15 +290,20 @@ export class TourStore<T> {
     this._syncDerivedState();
   }
 
-  private async _resolveTargetForStep(step: StepDefinition<T>): Promise<HTMLElement | null> {
-    const element = document.querySelector<HTMLElement>(step.target);
+  private async _resolveTargetForStep(
+    step: WorkflowStep<T>,
+    index: number,
+  ): Promise<HTMLElement | null> {
+    await step.resolveTargetElement();
+    const element = step.getElement();
     if (element) {
       return element;
     }
+    const definition = step.definition;
 
-    const strategy = step.behavior?.missingTargetStrategy ?? "error";
+    const strategy = definition.behavior?.missingTargetStrategy ?? "error";
     if (strategy === "skip") {
-      const nextIndex = this.currentStepIndex.get() + 1;
+      const nextIndex = index + 1;
       if (nextIndex >= this.steps.length) {
         this._setStatus("finished");
         this.workflow?.options.onFinish?.();
@@ -320,18 +314,19 @@ export class TourStore<T> {
     }
 
     if (strategy === "wait") {
-      const timeout = step.behavior?.targetTimeout ?? DEFAULT_TARGET_TIMEOUT;
+      const timeout = definition.behavior?.targetTimeout ?? DEFAULT_TARGET_TIMEOUT;
       const startedAt = Date.now();
       while (Date.now() - startedAt < timeout) {
         await wait(16);
-        const nextElement = document.querySelector<HTMLElement>(step.target);
+        await step.resolveTargetElement();
+        const nextElement = step.getElement();
         if (nextElement) {
           return nextElement;
         }
       }
     }
 
-    this.error = new Error(`Missing target: ${step.target}`);
+    this.error = new Error(`Missing target: ${step.definition.target}`);
     this._setStatus("error");
     return null;
   }
@@ -445,10 +440,12 @@ export class TourStore<T> {
     if (!isRunning) {
       console.log("Initializing popover props");
       this.popover.initializeProps();
+    } else {
+      popover.style.removeProperty("opacity");
+      popover.removeAttribute("aria-hidden");
+      popover.removeAttribute("inert");
     }
 
-    popover.removeAttribute("aria-hidden");
-    popover.removeAttribute("inert");
     popover.setAttribute("data-glow-tour-status", state.status);
     popover.setAttribute("data-glow-tour-step-index", String(state.currentStepIndex));
     popover.setAttribute("data-glow-tour-animated", String(animated));
@@ -456,8 +453,8 @@ export class TourStore<T> {
     popover.setAttribute("data-glow-tour-last-step", String(state.isLastStep));
 
     this.popover.setAnimationOptions({
-      duration: this.workflow?.options.animation?.duration ?? DEFAULT_ANIMATION_DURATION,
-      easing: this.workflow?.options.animation?.easing ?? DEFAULT_ANIMATION_EASING,
+      duration: this.workflow?.options.animation?.duration,
+      easing: this.workflow?.options.animation?.easing,
     });
 
     const triggerNext = popover.querySelector<HTMLElement>("[data-glow-tour-next-trigger]");
@@ -511,8 +508,8 @@ export class TourStore<T> {
     overlay.setAttribute("data-glow-tour-animated", String(animated));
 
     this.overlay.setAnimationOptions({
-      duration: this.workflow?.options.animation?.duration ?? DEFAULT_ANIMATION_DURATION,
-      easing: this.workflow?.options.animation?.easing ?? DEFAULT_ANIMATION_EASING,
+      duration: this.workflow?.options.animation?.duration,
+      easing: this.workflow?.options.animation?.easing,
     });
   }
 

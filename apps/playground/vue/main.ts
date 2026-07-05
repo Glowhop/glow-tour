@@ -31,11 +31,11 @@ createApp({
     };
 
     return () =>
-      h("main", { class: "app-screen" }, [
-        h("a", { class: "back-link", href: "/" }, "Playground"),
-        h("section", { class: "app-panel" }, [
-          h("h1", "Vue app"),
-          h("button", { type: "button", onClick: startTour }, "Start tour"),
+      h("main", { class: "app-screen bg-lime-50/40" }, [
+        h("a", { class: "back-link inline-flex items-center gap-2 text-emerald-700", href: "/" }, "Playground"),
+        h("section", { class: "app-panel shadow-sm ring-1 ring-black/5" }, [
+          h("h1", { class: "text-3xl font-semibold tracking-tight" }, "Vue app"),
+          h("button", { class: "w-fit", type: "button", onClick: startTour }, "Start tour"),
           h("span", { id: "vue-tour-id", class: "target-pill" }, "AHHH"),
           h(GlowTourRoot, null, () => [
             h(GlowTourOverlay),

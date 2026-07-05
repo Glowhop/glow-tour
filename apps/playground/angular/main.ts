@@ -41,11 +41,11 @@ const tour = glowTour
     GlowTourNextTrigger,
   ],
   template: `
-    <main class="app-screen">
-      <a class="back-link" href="/">Playground</a>
-      <section class="app-panel">
-        <h1>Angular app</h1>
-        <button type="button" (click)="startTour()">Start tour</button>
+    <main class="app-screen bg-lime-50/40">
+      <a class="back-link inline-flex items-center gap-2 text-emerald-700" href="/">Playground</a>
+      <section class="app-panel shadow-sm ring-1 ring-black/5">
+        <h1 class="text-3xl font-semibold tracking-tight">Angular app</h1>
+        <button class="w-fit" type="button" (click)="startTour()">Start tour</button>
         <span id="angular-tour-id" class="target-pill">AHHH</span>
 
         <GlowTourRoot>

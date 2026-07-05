@@ -5,12 +5,10 @@ const DEFAULT_ANIMATION_EASING = "ease-out";
 
 const APPEAR_KEYFRAME = {
   opacity: 1,
-  scale: 1,
 };
 
 const DISAPPEAR_KEYFRAME = {
   opacity: 0,
-  scale: 0.8,
 };
 
 export default abstract class GlowTourElement<T> {

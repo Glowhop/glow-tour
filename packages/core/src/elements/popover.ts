@@ -2,14 +2,6 @@ import type { StepDefinition } from "../types";
 import { isInViewport, roundByDPR, viewportDimensions } from "../utils/utils";
 import GlowTourElement from "./base";
 
-export const DEFAULT_POPOVER_STYLE = {
-  position: "fixed",
-  zIndex: "10000",
-  top: "0px",
-  left: "0px",
-  transform: "translate(0px, 0px)",
-};
-
 const DEFAULT_POPOVER_GAP = 14;
 const DEFAULT_TRY_ORDER = ["bottom", "top", "right", "left"] as const;
 
@@ -20,7 +12,6 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
     const nextPosition = this._getNextPosition(position, step);
 
     return {
-      ...DEFAULT_POPOVER_STYLE,
       transform: `translate(${roundByDPR(nextPosition.x)}px, ${roundByDPR(nextPosition.y)}px)`,
     };
   }
@@ -124,6 +115,7 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
     el.style.setProperty("top", "0px");
     el.style.setProperty("left", "0px");
     el.style.setProperty("opacity", "0");
+    el.style.setProperty("transform-origin", "center center");
     el.setAttribute("aria-hidden", "true");
     el.setAttribute("inert", "true");
     // el.style.setProperty("transform", "translate(0px, 0px)");

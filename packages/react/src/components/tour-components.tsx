@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useValue } from "@glowhop/react-observables";
-import { glowTour } from "../../../core/src";
+import { glowTour } from "..";
 
 type ElementProps = React.HTMLAttributes<HTMLElement> & {
   as?: React.ElementType;

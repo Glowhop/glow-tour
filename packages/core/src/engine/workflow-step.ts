@@ -4,6 +4,7 @@ import { resolveTargetElement } from "../utils/utils";
 
 export class WorkflowStep<T> {
   readonly target: StepDefinition<T>["target"];
+  targetEl: HTMLElement | null;
   readonly actions: StepDefinition<T>["actions"];
   readonly eventHandlers: StepDefinition<T>["eventHandlers"];
   readonly nextAction: StepDefinition<T>["nextAction"];
@@ -14,6 +15,7 @@ export class WorkflowStep<T> {
 
   constructor(readonly definition: StepDefinition<T>) {
     this.target = definition.target;
+    this.targetEl = null;
     this.actions = [...definition.actions];
     this.eventHandlers = [...definition.eventHandlers];
     this.nextAction = definition.nextAction;
@@ -37,7 +39,11 @@ export class WorkflowStep<T> {
     });
   }
 
+  async resolveTargetElement() {
+    this.targetEl = await resolveTargetElement(this.target);
+  }
+
   getElement() {
-    return resolveTargetElement(this.target);
+    return this.targetEl;
   }
 }
