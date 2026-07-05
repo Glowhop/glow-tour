@@ -15,8 +15,8 @@ const DEFAULT_TRY_ORDER = ["bottom", "top", "right", "left"] as const;
 
 type PopoverPlacement = (typeof DEFAULT_TRY_ORDER)[number];
 
-export default class PopoverElement extends GlowTourElement {
-  protected _getNextStyles(position: DOMRect, step: StepDefinition): Keyframe {
+export default class PopoverElement<T> extends GlowTourElement<T> {
+  protected _getNextStyles(position: DOMRect, step: StepDefinition<T>): Keyframe {
     const nextPosition = this._getNextPosition(position, step);
 
     return {
@@ -25,7 +25,7 @@ export default class PopoverElement extends GlowTourElement {
     };
   }
 
-  protected _getNextPosition(targetPosition: DOMRect, step: StepDefinition) {
+  protected _getNextPosition(targetPosition: DOMRect, step: StepDefinition<T>) {
     const currentElement = this.getElement();
     if (!currentElement) {
       return {
@@ -81,7 +81,7 @@ export default class PopoverElement extends GlowTourElement {
     };
   }
 
-  async moveToTarget(nextPosition: DOMRect, step: StepDefinition) {
+  async moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>) {
     return new Promise<void>((resolve) => {
       const firstAnimation = this._disappear();
 
@@ -110,5 +110,22 @@ export default class PopoverElement extends GlowTourElement {
 
       firstAnimation.onfinish = onFinish;
     });
+  }
+
+  initializeProps() {
+    const el = this.getElement();
+    if (!el) {
+      console.warn("No popover element found");
+      return;
+    }
+
+    el.style.setProperty("position", "fixed");
+    el.style.setProperty("z-index", "10000");
+    el.style.setProperty("top", "0px");
+    el.style.setProperty("left", "0px");
+    el.style.setProperty("opacity", "0");
+    el.setAttribute("aria-hidden", "true");
+    el.setAttribute("inert", "true");
+    // el.style.setProperty("transform", "translate(0px, 0px)");
   }
 }

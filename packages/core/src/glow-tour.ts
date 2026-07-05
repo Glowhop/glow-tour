@@ -8,7 +8,7 @@ export const glowTour = {
   create(name: string, options: StartOptions = {}) {
     return create(name, options);
   },
-  run(workflow: WorkflowDefinition) {
+  run(workflow: WorkflowDefinition<React.ReactNode>) {
     return state.start(workflow);
   },
   state,

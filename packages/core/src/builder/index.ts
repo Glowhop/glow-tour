@@ -15,7 +15,7 @@ import type {
   WorkflowDefinition,
 } from "../types";
 
-export interface StepConstructor extends StepPresentation {
+export interface StepConstructor<T> extends StepPresentation<T> {
   target: TargetResolver;
   overlay?: OverlayOptions;
   popover?: PopoverOptions;
@@ -24,7 +24,7 @@ export interface StepConstructor extends StepPresentation {
   behavior?: StepBehavior;
 }
 
-function cloneStepDefinition(step: StepDefinition): StepDefinition {
+function cloneStepDefinition<T>(step: StepDefinition<T>): StepDefinition<T> {
   return {
     ...step,
     presentation: {
@@ -33,8 +33,8 @@ function cloneStepDefinition(step: StepDefinition): StepDefinition {
     },
     overlay: step.overlay ? { ...step.overlay } : undefined,
     popover: step.popover ? { ...step.popover } : undefined,
-    scroll: step.scroll ? { ...step.scroll } : undefined,
-    animation: step.animation ? { ...step.animation } : undefined,
+    // scroll: step.scroll ? { ...step.scroll } : undefined,
+    // animation: step.animation ? { ...step.animation } : undefined,
     behavior: step.behavior ? { ...step.behavior } : undefined,
     actions: [...step.actions],
     eventHandlers: [...step.eventHandlers],
@@ -46,28 +46,28 @@ function cloneStartOptions(options: StartOptions): StartOptions {
     ...options,
     overlay: options.overlay ? { ...options.overlay } : undefined,
     popover: options.popover ? { ...options.popover } : undefined,
-    step: options.step
-      ? {
-          ...options.step,
-          data: options.step.data ? { ...options.step.data } : undefined,
-        }
-      : undefined,
+    // step: options.step
+    //   ? {
+    //       ...options.step,
+    //       data: options.step.data ? { ...options.step.data } : undefined,
+    //     }
+    //   : undefined,
     scroll: options.scroll ? { ...options.scroll } : undefined,
     animation: options.animation ? { ...options.animation } : undefined,
     behavior: options.behavior ? { ...options.behavior } : undefined,
   };
 }
 
-export class Builder {
-  private steps: StepDefinition[] = [];
-  private currentStep: StepBuilder | null = null;
+export class Builder<T> {
+  private steps: StepDefinition<T>[] = [];
+  private currentStep: StepBuilder<T> | null = null;
 
   constructor(
     public readonly name: string,
     private readonly options: StartOptions = {},
   ) {}
 
-  step(options: StepConstructor) {
+  step(options: StepConstructor<T>) {
     if (this.currentStep) {
       this.steps.push(this.currentStep.toDefinition());
     }
@@ -80,13 +80,13 @@ export class Builder {
         hideFooter: options.hideFooter ?? this.options.step?.hideFooter,
         hideBackButton: options.hideBackButton ?? this.options.step?.hideBackButton,
         hideNextButton: options.hideNextButton ?? this.options.step?.hideNextButton,
-        animated: options.animated ?? this.options.step?.animated,
+        // animated: options.animated ?? this.options.step?.animated,
         data: options.data ?? this.options.step?.data,
       },
       overlay: options.overlay ?? this.options.overlay,
       popover: options.popover ?? this.options.popover,
-      scroll: options.scroll ?? this.options.scroll,
-      animation: options.animation ?? this.options.animation,
+      // scroll: options.scroll ?? this.options.scroll,
+      // animation: options.animation ?? this.options.animation,
       behavior: options.behavior ?? this.options.behavior,
       actions: [],
       eventHandlers: [],
@@ -98,7 +98,7 @@ export class Builder {
     return this.currentStep;
   }
 
-  concat(builder: StepBuilder) {
+  concat(builder: StepBuilder<T>) {
     const definition = builder.builder.finish();
     const steps = definition.steps.map((step) => cloneStepDefinition(step));
 
@@ -115,7 +115,7 @@ export class Builder {
     return this.currentStep;
   }
 
-  finish(): WorkflowDefinition {
+  finish(): WorkflowDefinition<T> {
     const finalizedSteps = this.currentStep
       ? [...this.steps, this.currentStep.toDefinition()]
       : [...this.steps];
@@ -128,7 +128,7 @@ export class Builder {
   }
 }
 
-export class StepBuilder {
+export class StepBuilder<T> {
   readonly actions: StepActionInstruction[];
   readonly eventHandlers: EventHandler[];
   nextAction: StepTransitionAction | null;
@@ -136,8 +136,8 @@ export class StepBuilder {
   cancelAction: StepTransitionAction | null;
 
   constructor(
-    public readonly builder: Builder,
-    private definition: StepDefinition,
+    public readonly builder: Builder<T>,
+    private definition: StepDefinition<T>,
   ) {
     this.actions = this.definition.actions;
     this.eventHandlers = this.definition.eventHandlers;
@@ -146,7 +146,7 @@ export class StepBuilder {
     this.cancelAction = this.definition.cancelAction;
   }
 
-  step(options: StepConstructor) {
+  step(options: StepConstructor<T>) {
     return this.builder.step(options);
   }
 
@@ -154,7 +154,7 @@ export class StepBuilder {
     return this.builder.finish();
   }
 
-  concat(builder: StepBuilder) {
+  concat(builder: StepBuilder<T>) {
     return this.builder.concat(builder);
   }
 
@@ -244,7 +244,7 @@ export class StepBuilder {
     return this.onEvent(event, callback);
   }
 
-  toDefinition(): StepDefinition {
+  toDefinition(): StepDefinition<unknown> {
     return {
       ...this.definition,
       presentation: {
@@ -255,8 +255,8 @@ export class StepBuilder {
       },
       overlay: this.definition.overlay ? { ...this.definition.overlay } : undefined,
       popover: this.definition.popover ? { ...this.definition.popover } : undefined,
-      scroll: this.definition.scroll ? { ...this.definition.scroll } : undefined,
-      animation: this.definition.animation ? { ...this.definition.animation } : undefined,
+      // scroll: this.definition.scroll ? { ...this.definition.scroll } : undefined,
+      // animation: this.definition.animation ? { ...this.definition.animation } : undefined,
       behavior: this.definition.behavior ? { ...this.definition.behavior } : undefined,
       actions: [...this.actions],
       eventHandlers: [...this.eventHandlers],
@@ -267,10 +267,6 @@ export class StepBuilder {
   }
 }
 
-export function create(name: string, options: StartOptions = {}) {
-  return new Builder(name, options);
-}
-
-export function start(name: string, options: StartOptions = {}) {
-  return create(name, options);
+export function create<T>(name: string, options: StartOptions = {}) {
+  return new Builder<T>(name, options);
 }

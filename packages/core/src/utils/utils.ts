@@ -1,3 +1,5 @@
+import type { TargetResolver } from "../types";
+
 export function viewportDimensions() {
   return {
     width: typeof window === "undefined" ? 1024 : window.innerWidth,
@@ -64,4 +66,15 @@ export function toggleElementAttribute(element: Element, name: string, enabled: 
   if (typeof element.removeAttribute === "function") {
     element.removeAttribute(name);
   }
+}
+
+export async function resolveTargetElement(target: TargetResolver): Promise<HTMLElement | null> {
+  if (typeof target === "string") {
+    return document.querySelector<HTMLElement>(target);
+  } else if (target instanceof HTMLElement) {
+    return target;
+  } else if (typeof target === "function") {
+    return await target();
+  }
+  return null;
 }

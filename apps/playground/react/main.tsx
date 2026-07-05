@@ -1,11 +1,18 @@
 import { GlowTour, glowTour } from "@glowhop/react-tour";
-import "@glowhop/styles-tour/default.css";
 import { createRoot } from "react-dom/client";
 import "../src/styles.css";
 
 const tour = glowTour
   .create("react-playground", {
     overlay: { color: "#101820", opacity: 0.58, padding: 10, radius: 8 },
+    popover: {
+      buttons: {
+        cancelLabel: "Exit tour",
+        finishLabel: "Finish tour",
+        nextLabel: "Next step",
+        previousLabel: "Previous step",
+      },
+    },
   })
   .step({
     target: "#react-tour-id-1",
@@ -54,8 +61,8 @@ function ReactPlayground() {
             <GlowTour.Header />
             <GlowTour.Content />
             <GlowTour.Footer>
-              <GlowTour.PreviousTrigger previousLabel="prev" />
-              <GlowTour.NextTrigger finishLabel="finish" nextLabel="next" />
+              <GlowTour.PreviousTrigger />
+              <GlowTour.NextTrigger />
             </GlowTour.Footer>
           </GlowTour.Popover>
         </GlowTour.Root>

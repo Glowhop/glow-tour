@@ -1,17 +1,18 @@
 import { Observable } from "@glowhop/observables";
 import type { StepDefinition, StepPresentation } from "../types";
+import { resolveTargetElement } from "../utils/utils";
 
-export class WorkflowStep {
-  readonly target: StepDefinition["target"];
-  readonly actions: StepDefinition["actions"];
-  readonly eventHandlers: StepDefinition["eventHandlers"];
-  readonly nextAction: StepDefinition["nextAction"];
-  readonly previousAction: StepDefinition["previousAction"];
-  readonly cancelAction: StepDefinition["cancelAction"];
-  readonly props: Observable<StepDefinition["presentation"]>;
-  readonly initialProps: Readonly<StepDefinition["presentation"]>;
+export class WorkflowStep<T> {
+  readonly target: StepDefinition<T>["target"];
+  readonly actions: StepDefinition<T>["actions"];
+  readonly eventHandlers: StepDefinition<T>["eventHandlers"];
+  readonly nextAction: StepDefinition<T>["nextAction"];
+  readonly previousAction: StepDefinition<T>["previousAction"];
+  readonly cancelAction: StepDefinition<T>["cancelAction"];
+  readonly props: Observable<StepDefinition<T>["presentation"]>;
+  readonly initialProps: Readonly<StepDefinition<T>["presentation"]>;
 
-  constructor(readonly definition: StepDefinition) {
+  constructor(readonly definition: StepDefinition<T>) {
     this.target = definition.target;
     this.actions = [...definition.actions];
     this.eventHandlers = [...definition.eventHandlers];
@@ -22,11 +23,11 @@ export class WorkflowStep {
       ...definition.presentation,
       data: definition.presentation.data ? { ...definition.presentation.data } : undefined,
     });
-    const initialState: StepPresentation = {
+    const initialState: StepPresentation<T> = {
       ...this.initialProps,
       data: this.initialProps.data ? { ...this.initialProps.data } : undefined,
     };
-    this.props = new Observable<StepPresentation>(initialState);
+    this.props = new Observable<StepPresentation<T>>(initialState);
   }
 
   reset() {
@@ -37,6 +38,6 @@ export class WorkflowStep {
   }
 
   getElement() {
-    return document.querySelector<HTMLElement>(this.target);
+    return resolveTargetElement(this.target);
   }
 }

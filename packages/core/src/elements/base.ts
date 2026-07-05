@@ -13,20 +13,25 @@ const DISAPPEAR_KEYFRAME = {
   scale: 0.8,
 };
 
-export default abstract class GlowTourElement {
+export default abstract class GlowTourElement<T> {
   constructor(
     protected element: HTMLElement | SVGSVGElement,
     public options?: { duration?: number; easing?: string },
   ) {}
 
+  setAnimationOptions(options: { duration?: number; easing?: string }) {
+    this.options = options;
+  }
+
   protected _getAnimationOptions() {
     return {
       duration: this.options?.duration ?? DEFAULT_ANIMATION_DURATION,
       easing: this.options?.easing ?? DEFAULT_ANIMATION_EASING,
+      fill: "forwards" as const,
     };
   }
 
-  protected _appear(position: DOMRect, step: StepDefinition): Animation | null {
+  protected _appear(position: DOMRect, step: StepDefinition<T>): Animation | null {
     if (!this.element) return null;
 
     const defaultStyles = this._getNextStyles(position, step);
@@ -45,62 +50,55 @@ export default abstract class GlowTourElement {
     return this.element.animate(animation, this._getAnimationOptions());
   }
 
-  protected abstract _getNextStyles(position: DOMRect, step: StepDefinition): Keyframe;
+  protected abstract _getNextStyles(position: DOMRect, step: StepDefinition<T>): Keyframe;
 
   //   abstract updatePosition(position: DOMRect): Keyframe;
 
-  abstract moveToTarget(nextPosition: DOMRect, step: StepDefinition): Promise<void>;
+  abstract moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>): Promise<void>;
 
-  isShown() {
-    if (!this.element) return false;
-    return this.element.dataset.show === "true";
-  }
+  abstract initializeProps(): void;
 
   getElement(): HTMLElement | SVGSVGElement | null {
     return this.element;
   }
 
-  show(nextPosition: DOMRect, step: StepDefinition) {
+  show(nextPosition: DOMRect, step: StepDefinition<T>) {
     const el = this.getElement();
     if (!el) return;
 
     const anim = this._appear(nextPosition, step);
 
-    const onFinish = () => {
-      el.dataset.show = "true";
-    };
+    return new Promise<void>((resolve) => {
+      const onFinish = () => {
+        resolve();
+      };
 
-    //on attend la fin de l'animation pour clear
-    if (!anim) {
-      console.warn("no animation found");
-      onFinish();
-    } else {
-      anim.onfinish = onFinish;
-      anim.oncancel = onFinish;
-    }
-
-    return anim;
+      //on attend la fin de l'animation pour clear
+      if (!anim) {
+        console.warn("no animation found");
+        onFinish();
+      } else {
+        anim.onfinish = onFinish;
+      }
+    });
   }
 
-  hide() {
+  async hide() {
     const el = this.getElement();
     if (!el) return;
 
     const anim = this._disappear();
 
-    const onFinish = () => {
-      el.dataset.show = "false";
-    };
-
-    //on attend la fin de l'animation pour clear
-    if (!anim) {
-      console.warn("no animation found");
-      onFinish();
-    } else {
-      anim.onfinish = onFinish;
-      anim.oncancel = onFinish;
-    }
-
-    return anim;
+    return new Promise<void>((resolve) => {
+      const onFinish = () => {
+        resolve();
+      };
+      if (!anim) {
+        console.warn("no animation found");
+        onFinish();
+      } else {
+        anim.onfinish = onFinish;
+      }
+    });
   }
 }

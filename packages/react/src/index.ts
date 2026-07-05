@@ -1,18 +1,19 @@
-import type { WorkflowInstance } from "../../core/src";
-import { glowTour } from "../../core/src";
+import type { StartOptions, WorkflowDefinition, WorkflowInstance } from "../../core/src";
+import { create, createTourStore } from "../../core/src";
+import { resolveTargetElement } from "../../core/src/utils/utils";
 
 export { GlowTour } from "./components/tour-components";
 
 export interface ReactTutorialSnapshot {
-  status: ReturnType<WorkflowInstance["state"]["get"]>["status"];
+  status: ReturnType<WorkflowInstance<React.ReactNode>["get"]>["status"];
   currentStepIndex: number;
   totalSteps: number;
-  step: ReturnType<WorkflowInstance["state"]["get"]>["currentStep"];
+  step: ReturnType<WorkflowInstance<React.ReactNode>["get"]>["currentStep"];
 }
 
-export function createReactTutorialBridge(workflow: WorkflowInstance) {
+export function createReactTutorialBridge(workflow: WorkflowInstance<React.ReactNode>) {
   const getSnapshot = (): ReactTutorialSnapshot => {
-    const state = workflow.state.get();
+    const state = workflow.get();
     return {
       status: state.status,
       currentStepIndex: state.currentStepIndex,
@@ -25,12 +26,23 @@ export function createReactTutorialBridge(workflow: WorkflowInstance) {
     subscribe: (listener: () => void) => workflow.subscribe(() => listener()),
     getSnapshot,
     getServerSnapshot: getSnapshot,
-    getTargetElement: () => {
-      const step = workflow.state.get().currentStep;
-      return step ? document.querySelector<HTMLElement>(step.target) : null;
+    getTargetElement: async () => {
+      const step = workflow.get().currentStep;
+
+      return step?.target ? await resolveTargetElement(step?.target) : null;
     },
     controls: workflow,
   };
 }
 
-export { glowTour };
+const state = createTourStore<React.ReactNode>();
+
+export const glowTour = {
+  create(name: string, options: StartOptions = {}) {
+    return create<React.ReactNode>(name, options);
+  },
+  run(workflow: WorkflowDefinition<React.ReactNode>) {
+    return state.start(workflow);
+  },
+  state,
+};

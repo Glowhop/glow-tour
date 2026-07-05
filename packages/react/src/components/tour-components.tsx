@@ -5,6 +5,7 @@ import { glowTour } from "../../../core/src";
 type ElementProps = React.HTMLAttributes<HTMLElement> & {
   as?: React.ElementType;
 };
+type ContentProps = Omit<React.HTMLAttributes<HTMLElement>, "children">;
 type OverlayProps = Omit<React.SVGAttributes<SVGSVGElement>, "ref">;
 type ButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type" | "children"> & {
   children?: React.ReactElement;
@@ -14,7 +15,11 @@ const POPOVER_ID = "glow-tour-popover";
 const TITLE_ID = "glow-tour-title";
 const DESCRIPTION_ID = "glow-tour-description";
 
-export function Root({
+export function Root({ children }: { children: React.ReactNode }) {
+  return children;
+}
+
+export function Popover({
   children,
   "aria-describedby": ariaDescribedby = DESCRIPTION_ID,
   "aria-labelledby": ariaLabelledby = TITLE_ID,
@@ -30,8 +35,8 @@ export function Root({
       aria-labelledby={ariaLabelledby}
       data-glow-tour-root
       id={id}
-      ref={(element) => {
-        glowTour.state.registerElementPopover(element);
+      ref={(element: unknown) => {
+        if (element instanceof HTMLElement) glowTour.state.registerElementPopover(element);
       }}
       tabIndex={-1}
       role={role}
@@ -41,23 +46,30 @@ export function Root({
   );
 }
 
-export function Header({ children, id = TITLE_ID, ...props }: ElementProps) {
+export function Header({ id = TITLE_ID, ...props }: ContentProps) {
+  const title = useValue(glowTour.state.snapshot, (state) => {
+    return state.currentStep?.presentation.title ?? null;
+  });
+
   return (
     <header {...props} data-glow-tour-header id={id}>
-      {children}
+      {title}
     </header>
   );
 }
 
 export function Content({
-  children,
   "aria-live": ariaLive = "polite",
   id = DESCRIPTION_ID,
   ...props
-}: ElementProps) {
+}: ContentProps) {
+  const content = useValue(glowTour.state.snapshot, (state) => {
+    return state.currentStep?.presentation.content ?? null;
+  });
+
   return (
     <div {...props} aria-live={ariaLive} data-glow-tour-content id={id}>
-      {children}
+      {content}
     </div>
   );
 }
@@ -118,7 +130,7 @@ export function PreviousTrigger({
   });
 
   const label = useValue(glowTour.state.snapshot, (state) => {
-    return state.startOptions.buttons?.previousLabel ?? "Previous step";
+    return state.startOptions.popover?.buttons?.previousLabel ?? "Previous step";
   });
 
   if (isHidden) {
@@ -167,8 +179,8 @@ export function NextTrigger({
 
   const { nextLabel, finishLabel } = useValue(glowTour.state.snapshot, (state) => {
     return {
-      nextLabel: state.startOptions.buttons?.nextLabel ?? "Next step",
-      finishLabel: state.startOptions.buttons?.finishLabel ?? "Finish tour",
+      nextLabel: state.startOptions.popover?.buttons?.nextLabel ?? "Next step",
+      finishLabel: state.startOptions.popover?.buttons?.finishLabel ?? "Finish tour",
     };
   });
 
@@ -201,6 +213,7 @@ export function NextTrigger({
 
 export const GlowTour = {
   Root,
+  Popover,
   Header,
   Content,
   Footer,

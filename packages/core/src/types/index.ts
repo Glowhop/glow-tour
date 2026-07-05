@@ -1,7 +1,12 @@
 import type { Observable } from "@glowhop/observables";
-import type { ContentValue, PrimitiveValue } from "../content";
 
-export type TargetResolver = string;
+export type PrimitiveValue = string | number | boolean | null;
+
+export type TargetResolver =
+  | string
+  | HTMLElement
+  | (() => HTMLElement | null)
+  | (() => Promise<HTMLElement | null>);
 
 export type WorkflowStatus =
   | "not-started"
@@ -71,11 +76,17 @@ export interface PopoverOptions {
   disableAutoPlacement?: boolean;
   hideProgressIndicator?: boolean;
   gap?: number;
+  buttons?: {
+    previousLabel?: string;
+    nextLabel?: string;
+    cancelLabel?: string;
+    finishLabel?: string;
+  };
 }
 
-export interface StepPresentation {
-  title: ContentValue;
-  content: ContentValue;
+export interface StepPresentation<T> {
+  title: T;
+  content: T;
   hideFooter?: boolean;
   hideBackButton?: boolean;
   hideNextButton?: boolean;
@@ -97,49 +108,45 @@ export interface StartOptions {
   cancellable?: boolean;
   overlay?: OverlayOptions;
   popover?: PopoverOptions;
-  animated?: boolean;
   scroll?: ScrollOptions;
+  animated?: boolean;
   animation?: AnimationOptions;
   behavior?: StepBehavior;
-  buttons?: {
-    previousLabel?: string;
-    nextLabel?: string;
-    cancelLabel?: string;
-    finishLabel?: string;
-  };
+
   onStart?: () => void;
   onCancel?: () => void;
   onFinish?: () => void;
 }
 
-export type StepPropsStore = Observable<StepPresentation>;
+export type StepPropsStore<T> = Observable<StepPresentation<T>>;
 export type StepActionResult = boolean | void;
 
 export type StepAction = (
   element: HTMLElement | null,
-  stepProps: StepPropsStore,
+  stepProps: StepPropsStore<unknown>,
 ) => Promise<StepActionResult> | StepActionResult;
 export type StepActionInstruction = StepAction | number | "prev" | "next";
-export type StepTransitionAction = (element: HTMLElement | null, stepProps: StepPropsStore) => void;
+export type StepTransitionAction = (
+  element: HTMLElement | null,
+  stepProps: StepPropsStore<unknown>,
+) => void;
 
 export interface EventHandler<TEvent extends Event = Event> {
   event: string;
   callback: (
     event: TEvent,
-    stepProps: StepPropsStore,
+    stepProps: StepPropsStore<unknown>,
     next: () => Promise<void>,
     previous: () => Promise<void>,
     cancel: () => Promise<void>,
   ) => void | Promise<void>;
 }
 
-export interface StepDefinition {
+export interface StepDefinition<T> {
   target: TargetResolver;
-  presentation: StepPresentation;
+  presentation: StepPresentation<T>;
   overlay?: OverlayOptions;
   popover?: PopoverOptions;
-  scroll?: ScrollOptions;
-  animation?: AnimationOptions;
   behavior?: StepBehavior;
   actions: StepActionInstruction[];
   eventHandlers: EventHandler[];
@@ -148,17 +155,17 @@ export interface StepDefinition {
   cancelAction: StepTransitionAction | null;
 }
 
-export interface WorkflowDefinition {
+export interface WorkflowDefinition<T> {
   name: string;
   options: StartOptions;
-  steps: StepDefinition[];
+  steps: StepDefinition<T>[];
 }
 
-export interface WorkflowState {
+export interface WorkflowState<T> {
   name: string;
   totalSteps: number;
   currentStepIndex: number;
-  currentStep: StepDefinition | null;
+  currentStep: StepDefinition<T> | null;
   direction: WorkflowDirection;
   canGoNext: boolean;
   canGoPrevious: boolean;
@@ -170,8 +177,8 @@ export interface WorkflowState {
   error: Error | null;
 }
 
-export interface WorkflowControls {
-  start: (workflow?: WorkflowDefinition) => Promise<void>;
+export interface WorkflowControls<T> {
+  start: (workflow?: WorkflowDefinition<T>) => Promise<void>;
   next: () => Promise<void>;
   previous: () => Promise<void>;
   cancel: () => Promise<void>;
