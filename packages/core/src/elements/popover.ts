@@ -4,6 +4,7 @@ import GlowTourElement from "./base";
 
 const DEFAULT_POPOVER_GAP = 14;
 const DEFAULT_TRY_ORDER = ["bottom", "top", "right", "left"] as const;
+const REPLACEMENT_DIFF = 50; // pixels
 
 type PopoverPlacement = (typeof DEFAULT_TRY_ORDER)[number];
 
@@ -72,35 +73,12 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
     };
   }
 
-  async moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>) {
-    return new Promise<void>((resolve) => {
-      const firstAnimation = this._disappear();
+  async moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>, appear: boolean) {
+    if (!appear) {
+      await this._disappear();
+    }
 
-      const onFinish = () => {
-        const nextStyles = this._getNextStyles(nextPosition, step);
-        for (const [key, value] of Object.entries(nextStyles)) {
-          value != null && this.element.style.setProperty(key, String(value));
-        }
-
-        const secondAnimation = this._appear(nextPosition, step);
-
-        if (!secondAnimation) {
-          resolve(void 0);
-          return;
-        }
-
-        secondAnimation.onfinish = () => {
-          resolve(void 0);
-        };
-      };
-
-      if (!firstAnimation) {
-        onFinish();
-        return;
-      }
-
-      firstAnimation.onfinish = onFinish;
-    });
+    await this._appear(nextPosition, step);
   }
 
   initializeProps() {
@@ -119,5 +97,58 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
     el.setAttribute("aria-hidden", "true");
     el.setAttribute("inert", "true");
     // el.style.setProperty("transform", "translate(0px, 0px)");
+  }
+
+  updatePosition(nextPosition: DOMRect, step: StepDefinition<T>): void {
+    const nextCoordinates = this._getNextPosition(nextPosition, step);
+    const currentTransform = this.element.style.transform;
+    const currentCoordinatesStr = currentTransform.match(/translate\(([^)]+)\)/)?.[1];
+    const currentCoordinatesList = currentCoordinatesStr
+      ? currentCoordinatesStr.split(",").map((coord) => parseFloat(coord.trim()))
+      : [0, 0];
+    const currentCoordinates = { x: currentCoordinatesList[0], y: currentCoordinatesList[1] };
+    const diffX = Math.abs(nextCoordinates.x - currentCoordinates.x);
+    const diffY = Math.abs(nextCoordinates.y - currentCoordinates.y);
+
+    if (diffX > REPLACEMENT_DIFF || diffY > REPLACEMENT_DIFF) {
+      this.moveToTarget(nextPosition, step, false);
+    }
+  }
+
+  async _appear(position: DOMRect, step: StepDefinition<T>) {
+    const defaultStyles = this._getNextStyles(position, step);
+
+    for (const [key, value] of Object.entries(defaultStyles)) {
+      value != null && this.element.style.setProperty(key, String(value));
+    }
+
+    const animation = this.element.animate(
+      [
+        {
+          opacity: 1,
+        },
+      ],
+      this._getAnimationOptions(),
+    );
+    await animation.finished;
+
+    this.element.style.setProperty("opacity", "1");
+    this.element.removeAttribute("aria-hidden");
+    this.element.removeAttribute("inert");
+  }
+
+  async _disappear() {
+    const animation = this.element.animate(
+      {
+        opacity: 0,
+      },
+      this._getAnimationOptions(),
+    );
+
+    await animation.finished;
+
+    this.element.style.setProperty("opacity", "0");
+    this.element.setAttribute("aria-hidden", "true");
+    this.element.setAttribute("inert", "true");
   }
 }

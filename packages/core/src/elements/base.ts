@@ -3,14 +3,6 @@ import type { StepDefinition } from "../types";
 const DEFAULT_ANIMATION_DURATION = 180;
 const DEFAULT_ANIMATION_EASING = "ease-out";
 
-const APPEAR_KEYFRAME = {
-  opacity: 1,
-};
-
-const DISAPPEAR_KEYFRAME = {
-  opacity: 0,
-};
-
 export default abstract class GlowTourElement<T> {
   constructor(
     protected element: HTMLElement | SVGSVGElement,
@@ -21,38 +13,26 @@ export default abstract class GlowTourElement<T> {
     this.options = options;
   }
 
-  protected _getAnimationOptions() {
+  protected _getAnimationOptions(): KeyframeAnimationOptions {
     return {
       duration: this.options?.duration ?? DEFAULT_ANIMATION_DURATION,
       easing: this.options?.easing ?? DEFAULT_ANIMATION_EASING,
-      fill: "forwards" as const,
+      fill: "forwards",
     };
   }
 
-  protected _appear(position: DOMRect, step: StepDefinition<T>): Animation | null {
-    if (!this.element) return null;
+  // protected abstract _appear(position: DOMRect, step: StepDefinition<T>): Promise<void>;
 
-    const defaultStyles = this._getNextStyles(position, step);
-
-    for (const [key, value] of Object.entries(defaultStyles)) {
-      value != null && this.element.style.setProperty(key, String(value));
-    }
-
-    return this.element.animate(APPEAR_KEYFRAME, this._getAnimationOptions());
-  }
-  protected _disappear(): Animation | null {
-    if (!this.element) return null;
-
-    const animation = [DISAPPEAR_KEYFRAME];
-
-    return this.element.animate(animation, this._getAnimationOptions());
-  }
+  protected abstract _disappear(): Promise<void>;
 
   protected abstract _getNextStyles(position: DOMRect, step: StepDefinition<T>): Keyframe;
 
-  //   abstract updatePosition(position: DOMRect): Keyframe;
-
-  abstract moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>): Promise<void>;
+  abstract updatePosition(nextPosition: DOMRect, step: StepDefinition<T>): void;
+  abstract moveToTarget(
+    nextPosition: DOMRect,
+    step: StepDefinition<T>,
+    appear: boolean,
+  ): Promise<void>;
 
   abstract initializeProps(): void;
 
@@ -60,43 +40,11 @@ export default abstract class GlowTourElement<T> {
     return this.element;
   }
 
-  show(nextPosition: DOMRect, step: StepDefinition<T>) {
-    const el = this.getElement();
-    if (!el) return;
+  // appear(nextPosition: DOMRect, step: StepDefinition<T>) {
+  //   return this._appear(nextPosition, step);
+  // }
 
-    const anim = this._appear(nextPosition, step);
-
-    return new Promise<void>((resolve) => {
-      const onFinish = () => {
-        resolve();
-      };
-
-      //on attend la fin de l'animation pour clear
-      if (!anim) {
-        console.warn("no animation found");
-        onFinish();
-      } else {
-        anim.onfinish = onFinish;
-      }
-    });
-  }
-
-  async hide() {
-    const el = this.getElement();
-    if (!el) return;
-
-    const anim = this._disappear();
-
-    return new Promise<void>((resolve) => {
-      const onFinish = () => {
-        resolve();
-      };
-      if (!anim) {
-        console.warn("no animation found");
-        onFinish();
-      } else {
-        anim.onfinish = onFinish;
-      }
-    });
+  disappear() {
+    return this._disappear();
   }
 }

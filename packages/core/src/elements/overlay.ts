@@ -7,22 +7,29 @@ const DEFAULT_OVERLAY_PADDING = 16;
 const DEFAULT_OVERLAY_RADIUS = 12;
 
 export default class OverlayElement<T> extends GlowTourElement<T> {
-  moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>) {
-    return new Promise<void>((resolve) => {
-      const keyframes = [this._getNextStyles(nextPosition, step)];
+  async moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>) {
+    const keyframe = this._getNextStyles(nextPosition, step);
 
-      const path = this.element.querySelector("path");
-      if (!path) {
-        console.warn("No overlay path element found");
-        resolve(void 0);
-        return;
-      }
+    const path = this._getPathElement();
+    if (!path) {
+      console.warn("No overlay path element found");
+      return;
+    }
 
-      const animation = path.animate(keyframes, this._getAnimationOptions());
-      animation.onfinish = () => {
-        resolve(void 0);
-      };
+    const baseStyle = {
+      d: path.style.getPropertyValue("d") ?? "",
+      fill: path.style.getPropertyValue("fill") ?? "",
+      opacity: path.style.getPropertyValue("opacity") ?? "0",
+    };
+
+    const animation = path.animate([baseStyle, keyframe], {
+      ...this._getAnimationOptions(),
+      fill: "none",
     });
+
+    await animation.finished;
+
+    animation.commitStyles();
   }
 
   _getNextStyles(position: DOMRect, step: StepDefinition<T>): Keyframe {
@@ -76,5 +83,64 @@ export default class OverlayElement<T> extends GlowTourElement<T> {
     path.setAttribute("cursor", "auto");
 
     //fill: rgb(0, 0, 0);opacity: 0.7;pointer-events: auto;cursor: auto;
+  }
+
+  private _getPathElement(): SVGPathElement | null {
+    return this.element.querySelector("path");
+  }
+
+  updatePosition(nextPosition: DOMRect, step: StepDefinition<T>) {
+    const { padding, radius } = step.overlay || {};
+    const pathValue = roundedRectPath(nextPosition, viewportDimensions(), {
+      padding: padding ?? DEFAULT_OVERLAY_PADDING,
+      radius: radius ?? DEFAULT_OVERLAY_RADIUS,
+    });
+    const path = this._getPathElement();
+    if (!path) {
+      console.warn("No overlay path element found");
+      return;
+    }
+    path.style.setProperty("d", `path("${pathValue}")`);
+    const viewport = viewportDimensions();
+    this.element.setAttribute("viewBox", `0 0 ${viewport.width} ${viewport.height}`);
+  }
+
+  async _appear(position: DOMRect, step: StepDefinition<T>) {
+    const path = this._getPathElement();
+    if (!path) {
+      console.warn("No overlay path element found");
+      return Promise.resolve();
+    }
+
+    const defaultStyles = this._getNextStyles(position, step);
+
+    for (const [key, value] of Object.entries(defaultStyles)) {
+      value != null && path.style.setProperty(key, String(value));
+    }
+
+    const keyframe = {
+      opacity: String(defaultStyles.opacity) ?? "0.7",
+    };
+
+    const animation = path.animate([keyframe], this._getAnimationOptions());
+
+    await animation.finished;
+  }
+
+  async _disappear() {
+    const path = this._getPathElement();
+    if (!path) {
+      console.warn("No overlay path element found");
+      return Promise.resolve();
+    }
+
+    const animation = path.animate(
+      {
+        opacity: "0",
+      },
+      this._getAnimationOptions(),
+    );
+
+    await animation.finished;
   }
 }
