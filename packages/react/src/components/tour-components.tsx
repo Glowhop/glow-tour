@@ -137,6 +137,10 @@ export function BackTrigger({
     return state.disableBackButton;
   });
 
+  const isFirstStep = useValue(glowTour.state.snapshot, (state) => {
+    return state.isFirstStep;
+  });
+
   const isHidden = useValue(stepProps, (state) => {
     return state.hideBackButton;
   });
@@ -145,7 +149,7 @@ export function BackTrigger({
     return state.startOptions.popover?.buttons?.backLabel ?? "Back step";
   });
 
-  if (isHidden) {
+  if (isHidden || isFirstStep) {
     return null;
   }
 

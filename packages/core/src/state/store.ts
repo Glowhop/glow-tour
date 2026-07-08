@@ -195,9 +195,6 @@ export class TourStore<T> {
       return;
     }
     await Promise.allSettled([this.overlay.disappear(), this.popover.disappear()]);
-
-    this.overlay.resetProps();
-    this.popover.resetProps();
   }
 
   private async _movePopover(target: HTMLElement, step: StepDefinition<T>, appear: boolean) {

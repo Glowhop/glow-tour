@@ -23,6 +23,9 @@ const tour = glowTour
     target: "#react-tour-id-2",
     title: "React step",
     content: "This step targets a real React-rendered element.",
+    overlay: {
+      color: "red",
+    },
   })
   .step({
     target: "#react-tour-id-3",

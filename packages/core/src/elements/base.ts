@@ -33,7 +33,6 @@ export default abstract class GlowTourElement<T> {
   // ): Promise<void>;
 
   abstract initializeProps(): void;
-  abstract resetProps(): void;
 
   getElement(): HTMLElement | SVGSVGElement | null {
     return this.element;

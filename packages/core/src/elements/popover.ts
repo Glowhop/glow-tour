@@ -106,19 +106,6 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
     // el.style.setProperty("transform", "translate(0px, 0px)");
   }
 
-  resetProps() {
-    const el = this.getElement();
-    if (!el) {
-      console.warn("No popover element found");
-      return;
-    }
-
-    el.style.removeProperty("transform");
-    el.style.setProperty("opacity", "0");
-    el.setAttribute("aria-hidden", "true");
-    el.setAttribute("inert", "true");
-  }
-
   updatePosition(nextPosition: DOMRect, step: StepDefinition<T>): void {
     const nextCoordinates = this._getNextPosition(nextPosition, step);
     const currentTransform = this.element.style.transform;
@@ -167,8 +154,12 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
 
     await animation.finished;
 
+    animation.commitStyles();
+
     this.element.style.setProperty("opacity", "0");
     this.element.setAttribute("aria-hidden", "true");
     this.element.setAttribute("inert", "true");
+    this.element.style.removeProperty("transform");
+    this.element.style.setProperty("opacity", "0");
   }
 }

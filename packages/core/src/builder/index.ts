@@ -15,6 +15,7 @@ import type {
   WorkflowDefinition,
 } from "../types";
 
+//todo a cleaner
 export interface StepConstructor<T> extends StepPresentation<T> {
   target: TargetResolver;
   overlay?: OverlayOptions;
