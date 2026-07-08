@@ -7,7 +7,7 @@ export const GLOW_TOUR_ELEMENT_NAMES = [
   "glow-tour-content",
   "glow-tour-footer",
   "glow-tour-popover",
-  "glow-tour-previous-trigger",
+  "glow-tour-back-trigger",
   "glow-tour-next-trigger",
   "glow-tour-overlay",
 ] as const;
@@ -19,7 +19,7 @@ const ELEMENT_REGISTRY: Record<(typeof GLOW_TOUR_ELEMENT_NAMES)[number], GlowTou
   "glow-tour-content": "content",
   "glow-tour-footer": "footer",
   "glow-tour-popover": "popover",
-  "glow-tour-previous-trigger": "previous-trigger",
+  "glow-tour-back-trigger": "back-trigger",
   "glow-tour-next-trigger": "next-trigger",
   "glow-tour-overlay": "overlay",
 };
@@ -62,8 +62,8 @@ function syncTriggerLabel(element: HTMLElement, name: GlowTourElementName) {
     return;
   }
 
-  if (name === "previous-trigger") {
-    element.textContent = element.getAttribute("previous-label") ?? "previous";
+  if (name === "back-trigger") {
+    element.textContent = element.getAttribute("back-label") ?? "back";
     return;
   }
 
@@ -120,10 +120,10 @@ export function registerGlowTourElements() {
             if (name === "glow-tour-popover" && !this.hasAttribute("aria-describedby")) {
               this.setAttribute("aria-describedby", DESCRIPTION_ID);
             }
-            if (name === "glow-tour-previous-trigger" && !this.hasAttribute("aria-keyshortcuts")) {
+            if (name === "glow-tour-back-trigger" && !this.hasAttribute("aria-keyshortcuts")) {
               this.setAttribute("aria-keyshortcuts", "ArrowLeft");
             }
-            if (name === "glow-tour-previous-trigger" && !this.hasAttribute("aria-controls")) {
+            if (name === "glow-tour-back-trigger" && !this.hasAttribute("aria-controls")) {
               this.setAttribute("aria-controls", POPOVER_ID);
             }
             if (name === "glow-tour-next-trigger" && !this.hasAttribute("aria-keyshortcuts")) {

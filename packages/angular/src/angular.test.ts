@@ -9,7 +9,7 @@ import {
   GlowTourNextTrigger,
   GlowTourOverlay,
   GlowTourPopover,
-  GlowTourPreviousTrigger,
+  GlowTourBackTrigger,
   GlowTourRoot,
   TutorialService,
 } from "./public-api";
@@ -23,7 +23,7 @@ describe("angular bridge", () => {
     assert.equal(typeof GlowTourFooter, "function");
     assert.equal(typeof GlowTourPopover, "function");
     assert.equal(typeof GlowTourOverlay, "function");
-    assert.equal(typeof GlowTourPreviousTrigger, "function");
+    assert.equal(typeof GlowTourBackTrigger, "function");
     assert.equal(typeof GlowTourNextTrigger, "function");
   });
 
@@ -44,15 +44,15 @@ describe("angular bridge", () => {
     assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.overlay, /data-glow-tour-overlay/);
     assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.overlay, /<path/);
     assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.overlay, /data-glow-tour-overlay-path/);
-    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.previousTrigger, /type="button"/);
-    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.previousTrigger, /aria-label="Previous step"/);
-    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.previousTrigger, /aria-keyshortcuts="ArrowLeft"/);
+    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.backTrigger, /type="button"/);
+    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.backTrigger, /aria-label="Back step"/);
+    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.backTrigger, /aria-keyshortcuts="ArrowLeft"/);
     assert.match(
-      GLOW_TOUR_COMPONENT_TEMPLATES.previousTrigger,
+      GLOW_TOUR_COMPONENT_TEMPLATES.backTrigger,
       /aria-controls="glow-tour-popover"/,
     );
-    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.previousTrigger, /data-glow-tour-previous-trigger/);
-    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.previousTrigger, /previousLabel/);
+    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.backTrigger, /data-glow-tour-back-trigger/);
+    assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.backTrigger, /backLabel/);
     assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.nextTrigger, /type="button"/);
     assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.nextTrigger, /aria-label="Next step"/);
     assert.match(GLOW_TOUR_COMPONENT_TEMPLATES.nextTrigger, /aria-keyshortcuts="Enter ArrowRight"/);

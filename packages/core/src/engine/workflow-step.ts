@@ -1,5 +1,5 @@
 import { Observable } from "@glowhop/observables";
-import type { StepDefinition, StepPresentation } from "../types";
+import type { StepDefinition, StepPresentation, WorkflowStepPublicProps } from "../types";
 import { resolveTargetElement } from "../utils/utils";
 
 export class WorkflowStep<T> {
@@ -8,7 +8,7 @@ export class WorkflowStep<T> {
   readonly actions: StepDefinition<T>["actions"];
   readonly eventHandlers: StepDefinition<T>["eventHandlers"];
   readonly nextAction: StepDefinition<T>["nextAction"];
-  readonly previousAction: StepDefinition<T>["previousAction"];
+  readonly backAction: StepDefinition<T>["backAction"];
   readonly cancelAction: StepDefinition<T>["cancelAction"];
   readonly props: Observable<StepDefinition<T>["presentation"]>;
   readonly initialProps: Readonly<StepDefinition<T>["presentation"]>;
@@ -16,15 +16,17 @@ export class WorkflowStep<T> {
   constructor(readonly definition: StepDefinition<T>) {
     this.target = definition.target;
     this.targetEl = null;
-    this.actions = [...definition.actions];
-    this.eventHandlers = [...definition.eventHandlers];
+    this.actions = definition.actions;
+    this.eventHandlers = definition.eventHandlers;
     this.nextAction = definition.nextAction;
-    this.previousAction = definition.previousAction;
+    this.backAction = definition.backAction;
     this.cancelAction = definition.cancelAction;
+
     this.initialProps = Object.freeze({
       ...definition.presentation,
       data: definition.presentation.data ? { ...definition.presentation.data } : undefined,
     });
+
     const initialState: StepPresentation<T> = {
       ...this.initialProps,
       data: this.initialProps.data ? { ...this.initialProps.data } : undefined,
@@ -44,6 +46,19 @@ export class WorkflowStep<T> {
   }
 
   getElement() {
+    if (!this.targetEl) {
+      throw new Error(
+        "Target element has not been resolved yet. use resolveTargetElement() before calling getElement().",
+      );
+    }
     return this.targetEl;
+  }
+
+  getPublicProps(): WorkflowStepPublicProps<T> {
+    return {
+      initialProps: this.initialProps,
+      currentProps: this.props,
+      target: this.targetEl,
+    };
   }
 }

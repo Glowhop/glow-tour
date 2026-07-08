@@ -85,6 +85,24 @@ export default class OverlayElement<T> extends GlowTourElement<T> {
     //fill: rgb(0, 0, 0);opacity: 0.7;pointer-events: auto;cursor: auto;
   }
 
+  resetProps() {
+    const el = this.getElement();
+    if (!el) {
+      console.warn("No overlay element found");
+      return;
+    }
+
+    const path = el.querySelector("path");
+    if (!path) {
+      console.warn("No overlay path element found");
+      return;
+    }
+
+    path.style.removeProperty("d");
+    path.style.removeProperty("fill");
+    path.style.removeProperty("opacity");
+  }
+
   private _getPathElement(): SVGPathElement | null {
     return this.element.querySelector("path");
   }
@@ -138,9 +156,11 @@ export default class OverlayElement<T> extends GlowTourElement<T> {
       {
         opacity: "0",
       },
-      this._getAnimationOptions(),
+      { ...this._getAnimationOptions(), fill: "none" },
     );
 
     await animation.finished;
+
+    animation.commitStyles();
   }
 }

@@ -21,28 +21,23 @@ export default abstract class GlowTourElement<T> {
     };
   }
 
-  // protected abstract _appear(position: DOMRect, step: StepDefinition<T>): Promise<void>;
-
   protected abstract _disappear(): Promise<void>;
 
   protected abstract _getNextStyles(position: DOMRect, step: StepDefinition<T>): Keyframe;
 
   abstract updatePosition(nextPosition: DOMRect, step: StepDefinition<T>): void;
-  abstract moveToTarget(
-    nextPosition: DOMRect,
-    step: StepDefinition<T>,
-    appear: boolean,
-  ): Promise<void>;
+  // abstract moveToTarget(
+  //   nextPosition: DOMRect,
+  //   step: StepDefinition<T>,
+  //   appear: boolean,
+  // ): Promise<void>;
 
   abstract initializeProps(): void;
+  abstract resetProps(): void;
 
   getElement(): HTMLElement | SVGSVGElement | null {
     return this.element;
   }
-
-  // appear(nextPosition: DOMRect, step: StepDefinition<T>) {
-  //   return this._appear(nextPosition, step);
-  // }
 
   disappear() {
     return this._disappear();

@@ -9,6 +9,7 @@
     "@glowhop/core-tour": "workspace:*",
     "@types/react": "^18.3.18",
     "@glowhop/react-observables": "^1.1.1",
+    "@glowhop/observables": "^1.3.3",
     "react": "^18.3.1"
   }
 }

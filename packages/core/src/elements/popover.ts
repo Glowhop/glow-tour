@@ -73,10 +73,17 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
     };
   }
 
-  async moveToTarget(nextPosition: DOMRect, step: StepDefinition<T>, appear: boolean) {
+  async moveToTarget(
+    nextPosition: DOMRect,
+    step: StepDefinition<T>,
+    appear: boolean,
+    onChange?: () => void,
+  ) {
     if (!appear) {
       await this._disappear();
     }
+
+    onChange?.();
 
     await this._appear(nextPosition, step);
   }
@@ -97,6 +104,19 @@ export default class PopoverElement<T> extends GlowTourElement<T> {
     el.setAttribute("aria-hidden", "true");
     el.setAttribute("inert", "true");
     // el.style.setProperty("transform", "translate(0px, 0px)");
+  }
+
+  resetProps() {
+    const el = this.getElement();
+    if (!el) {
+      console.warn("No popover element found");
+      return;
+    }
+
+    el.style.removeProperty("transform");
+    el.style.setProperty("opacity", "0");
+    el.setAttribute("aria-hidden", "true");
+    el.setAttribute("inert", "true");
   }
 
   updatePosition(nextPosition: DOMRect, step: StepDefinition<T>): void {

@@ -10,7 +10,7 @@ const tour = glowTour
         cancelLabel: "Exit tour",
         finishLabel: "Finish tour",
         nextLabel: "Next step",
-        previousLabel: "Previous step",
+        backLabel: "Previous step",
       },
     },
   })
@@ -61,7 +61,7 @@ function ReactPlayground() {
             <GlowTour.Header className="text-2xl" />
             <GlowTour.Content className="my-2" />
             <GlowTour.Footer className="grid gap-2 grid-cols-2 grid-rows-1">
-              <GlowTour.PreviousTrigger className="justify-self-start" />
+              <GlowTour.BackTrigger className="justify-self-start" />
               <GlowTour.NextTrigger className="justify-self-end col-end-2 col-start-2" />
             </GlowTour.Footer>
           </GlowTour.Popover>

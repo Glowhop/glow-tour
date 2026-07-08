@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useValue } from "@glowhop/react-observables";
+import { Observable } from "@glowhop/observables";
 import { glowTour } from "..";
+import type { WorkflowStep } from "@glowhop/core-tour";
 
 type ElementProps = React.HTMLAttributes<HTMLElement> & {
   as?: React.ElementType;
@@ -8,7 +10,9 @@ type ElementProps = React.HTMLAttributes<HTMLElement> & {
 type ContentProps = Omit<React.HTMLAttributes<HTMLElement>, "children">;
 type OverlayProps = Omit<React.SVGAttributes<SVGSVGElement>, "ref">;
 type ButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type" | "children"> & {
-  children?: React.ReactElement;
+  children?:
+    | React.ReactElement
+    | ((props: React.ButtonHTMLAttributes<HTMLButtonElement>) => React.ReactElement);
 };
 
 const POPOVER_ID = "glow-tour-popover";
@@ -47,8 +51,9 @@ export function Popover({
 }
 
 export function Header({ id = TITLE_ID, ...props }: ContentProps) {
-  const title = useValue(glowTour.state.snapshot, (state) => {
-    return state.currentStep?.presentation.title ?? null;
+  const stepProps = useGlowTourStepProps();
+  const title = useValue(stepProps, (state) => {
+    return state.title ?? null;
   });
 
   return (
@@ -63,8 +68,9 @@ export function Content({
   id = DESCRIPTION_ID,
   ...props
 }: ContentProps) {
-  const content = useValue(glowTour.state.snapshot, (state) => {
-    return state.currentStep?.presentation.content ?? null;
+  const stepProps = useGlowTourStepProps();
+  const content = useValue(stepProps, (state) => {
+    return state.content ?? null;
   });
 
   return (
@@ -75,8 +81,9 @@ export function Content({
 }
 
 export function Footer({ children, ...props }: ElementProps) {
-  const isHidden = useValue(glowTour.state.snapshot, (state) => {
-    return state.currentStep?.presentation.hideFooter === true;
+  const stepProps = useGlowTourStepProps();
+  const isHidden = useValue(stepProps, (state) => {
+    return state.hideFooter;
   });
 
   if (isHidden) {
@@ -114,23 +121,28 @@ export function Overlay({
   );
 }
 
-export function PreviousTrigger({
+export function BackTrigger({
   children,
   "aria-controls": ariaControls = POPOVER_ID,
-  "aria-keyshortcuts": ariaKeyshortcuts = "ArrowLeft",
   "aria-label": ariaLabel,
   ...props
 }: ButtonProps) {
   const isDisabled = useValue(glowTour.state.snapshot, (state) => {
-    return state.canGoPrevious === false;
+    return state.canGoBack === false;
   });
 
-  const isHidden = useValue(glowTour.state.snapshot, (state) => {
-    return state.isFirstStep || state.currentStep?.presentation.hideBackButton === true;
+  const stepProps = useGlowTourStepProps();
+
+  const isStepDisabled = useValue(stepProps, (state) => {
+    return state.disableBackButton;
+  });
+
+  const isHidden = useValue(stepProps, (state) => {
+    return state.hideBackButton;
   });
 
   const label = useValue(glowTour.state.snapshot, (state) => {
-    return state.startOptions.popover?.buttons?.previousLabel ?? "Previous step";
+    return state.startOptions.popover?.buttons?.backLabel ?? "Back step";
   });
 
   if (isHidden) {
@@ -139,15 +151,21 @@ export function PreviousTrigger({
 
   const baseProps = {
     "aria-controls": ariaControls,
-    "aria-keyshortcuts": ariaKeyshortcuts,
     "aria-label": ariaLabel || label,
-    disabled: isDisabled,
+    disabled: isDisabled || isStepDisabled,
     type: "button",
-    "data-action": "previous",
-    "data-glow-tour-previous-trigger": true,
+    "data-action": "back",
+    "data-glow-tour-back-trigger": true,
+    onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      glowTour.state.back();
+    },
   } as const;
 
   if (children) {
+    if (typeof children === "function") {
+      return children({ ...baseProps, ...props });
+    }
     return React.cloneElement(children, { ...baseProps, ...props });
   }
 
@@ -161,7 +179,6 @@ export function PreviousTrigger({
 export function NextTrigger({
   children,
   "aria-controls": ariaControls = POPOVER_ID,
-  "aria-keyshortcuts": ariaKeyshortcuts = "Enter ArrowRight",
   "aria-label": ariaLabel,
   ...props
 }: ButtonProps) {
@@ -169,8 +186,10 @@ export function NextTrigger({
     return state.canGoNext === false;
   });
 
-  const isHidden = useValue(glowTour.state.snapshot, (state) => {
-    return state.currentStep?.presentation.hideNextButton === true;
+  const stepProps = useGlowTourStepProps();
+
+  const isHidden = useValue(stepProps, (state) => {
+    return state.hideNextButton;
   });
 
   const isLastStep = useValue(glowTour.state.snapshot, (state) => {
@@ -192,15 +211,22 @@ export function NextTrigger({
 
   const baseProps = {
     "aria-controls": ariaControls,
-    "aria-keyshortcuts": ariaKeyshortcuts,
     "aria-label": ariaLabel || label,
     disabled: isDisabled,
     type: "button",
     "data-action": "next",
     "data-glow-tour-next-trigger": true,
+    onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+      console.log("NextTrigger clicked");
+      event.preventDefault();
+      glowTour.state.next();
+    },
   } as const;
 
   if (children) {
+    if (typeof children === "function") {
+      return children({ ...baseProps, ...props });
+    }
     return React.cloneElement(children, { ...baseProps, ...props });
   }
 
@@ -211,6 +237,20 @@ export function NextTrigger({
   );
 }
 
+function useGlowTourStepProps() {
+  const step = useValue(glowTour.state.snapshot, (state) => state.currentStep);
+
+  return React.useMemo(
+    () =>
+      step?.currentProps ??
+      new Observable<WorkflowStep<React.ReactNode>["props"]["_value"]>({
+        content: "",
+        title: "",
+      }),
+    [step?.currentProps],
+  );
+}
+
 export const GlowTour = {
   Root,
   Popover,
@@ -218,6 +258,6 @@ export const GlowTour = {
   Content,
   Footer,
   Overlay,
-  PreviousTrigger,
+  BackTrigger,
   NextTrigger,
 };

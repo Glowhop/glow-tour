@@ -1,4 +1,5 @@
 import type { Observable } from "@glowhop/observables";
+import { WorkflowStep } from "../engine/workflow-step";
 
 export type PrimitiveValue = string | number | boolean | null;
 
@@ -18,7 +19,7 @@ export type WorkflowStatus =
   | "cancelled"
   | "error";
 
-export type WorkflowDirection = "next" | "previous";
+export type WorkflowDirection = "next" | "back";
 export type GlowTourElementName =
   | "root"
   | "header"
@@ -26,7 +27,7 @@ export type GlowTourElementName =
   | "content"
   | "footer"
   | "popover"
-  | "previous-trigger"
+  | "back-trigger"
   | "next-trigger"
   | "overlay";
 
@@ -77,10 +78,24 @@ export interface PopoverOptions {
   hideProgressIndicator?: boolean;
   gap?: number;
   buttons?: {
-    previousLabel?: string;
+    backLabel?: string;
     nextLabel?: string;
     cancelLabel?: string;
     finishLabel?: string;
+  };
+  keyboardShortcuts?: {
+    /**
+     * @default ["ArrowLeft", "Backspace"]
+     */
+    back?: string[];
+    /**
+     * @default ["Enter", "ArrowRight"]
+     */
+    next?: string[];
+    /**
+     * @default ["Escape"]
+     */
+    cancel?: string[];
   };
 }
 
@@ -88,8 +103,14 @@ export interface StepPresentation<T> {
   title: T;
   content: T;
   hideFooter?: boolean;
+  disableBackButton?: boolean;
   hideBackButton?: boolean;
+  disableNextButton?: boolean;
   hideNextButton?: boolean;
+  /**
+   * @default true
+   */
+  resetPropsOnEnter?: boolean;
   data?: Record<string, PrimitiveValue>;
 }
 
@@ -121,23 +142,23 @@ export interface StartOptions {
 export type StepPropsStore<T> = Observable<StepPresentation<T>>;
 export type StepActionResult = boolean | void;
 
-export type StepAction = (
+export type StepAction<T> = (
   element: HTMLElement | null,
-  stepProps: StepPropsStore<unknown>,
+  stepProps: StepPropsStore<T>,
 ) => Promise<StepActionResult> | StepActionResult;
-export type StepActionInstruction = StepAction | number | "prev" | "next";
-export type StepTransitionAction = (
+export type StepActionInstruction<T> = StepAction<T> | number | "back" | "next";
+export type StepTransitionAction<T> = (
   element: HTMLElement | null,
-  stepProps: StepPropsStore<unknown>,
+  stepProps: StepPropsStore<T>,
 ) => void;
 
-export interface EventHandler<TEvent extends Event = Event> {
+export interface EventHandler<TStepProps, TEvent extends Event = Event> {
   event: string;
   callback: (
     event: TEvent,
-    stepProps: StepPropsStore<unknown>,
+    stepProps: StepPropsStore<TStepProps>,
     next: () => Promise<void>,
-    previous: () => Promise<void>,
+    back: () => Promise<void>,
     cancel: () => Promise<void>,
   ) => void | Promise<void>;
 }
@@ -148,11 +169,11 @@ export interface StepDefinition<T> {
   overlay?: OverlayOptions;
   popover?: PopoverOptions;
   behavior?: StepBehavior;
-  actions: StepActionInstruction[];
-  eventHandlers: EventHandler[];
-  nextAction: StepTransitionAction | null;
-  previousAction: StepTransitionAction | null;
-  cancelAction: StepTransitionAction | null;
+  actions?: StepActionInstruction<T>[];
+  eventHandlers?: EventHandler<T>[];
+  nextAction?: StepTransitionAction<T> | null;
+  backAction?: StepTransitionAction<T> | null;
+  cancelAction?: StepTransitionAction<T> | null;
 }
 
 export interface WorkflowDefinition<T> {
@@ -161,14 +182,20 @@ export interface WorkflowDefinition<T> {
   steps: StepDefinition<T>[];
 }
 
+export interface WorkflowStepPublicProps<T> {
+  initialProps: Readonly<StepPresentation<T>>;
+  currentProps: StepPropsStore<T>;
+  target: HTMLElement | null;
+}
+
 export interface WorkflowState<T> {
   name: string;
   totalSteps: number;
   currentStepIndex: number;
-  currentStep: StepDefinition<T> | null;
+  currentStep: WorkflowStepPublicProps<T> | null;
   direction: WorkflowDirection;
   canGoNext: boolean;
-  canGoPrevious: boolean;
+  canGoBack: boolean;
   canCancel: boolean;
   isFirstStep: boolean;
   isLastStep: boolean;
@@ -180,7 +207,7 @@ export interface WorkflowState<T> {
 export interface WorkflowControls<T> {
   start: (workflow?: WorkflowDefinition<T>) => Promise<void>;
   next: () => Promise<void>;
-  previous: () => Promise<void>;
+  back: () => Promise<void>;
   cancel: () => Promise<void>;
   goTo: (index: number) => Promise<void>;
 }

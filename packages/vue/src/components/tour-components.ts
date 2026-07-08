@@ -122,16 +122,16 @@ export const GlowTourOverlay = defineComponent({
   },
 });
 
-export const GlowTourPreviousTrigger = defineComponent({
-  name: namedComponentName("PreviousTrigger"),
+export const GlowTourBackTrigger = defineComponent({
+  name: namedComponentName("BackTrigger"),
   props: {
     ariaControls: { default: POPOVER_ID, type: String },
     ariaKeyshortcuts: { default: "ArrowLeft", type: String },
-    ariaLabel: { default: "Previous step", type: String },
-    previousLabel: { default: "previous", type: String },
+    ariaLabel: { default: "Back step", type: String },
+    backLabel: { default: "back", type: String },
   },
   setup(props, { slots }) {
-    const element = useTourElement("previous-trigger");
+    const element = useTourElement("back-trigger");
     return () =>
       h(
         "button",
@@ -139,12 +139,12 @@ export const GlowTourPreviousTrigger = defineComponent({
           "aria-controls": props.ariaControls,
           "aria-keyshortcuts": props.ariaKeyshortcuts,
           "aria-label": props.ariaLabel,
-          "data-action": "previous",
-          "data-glow-tour-previous-trigger": "",
+          "data-action": "back",
+          "data-glow-tour-back-trigger": "",
           ref: element,
           type: "button",
         },
-        slots.default?.() ?? props.previousLabel,
+        slots.default?.() ?? props.backLabel,
       );
   },
 });

@@ -34,6 +34,13 @@ button:hover {
   border-color: #55766a;
 }
 
+button:disabled {
+  background: #eaf2ef;
+  border-color: #cbd6d0;
+  color: #5c6863;
+  cursor: not-allowed;
+}
+
 .launcher,
 .app-screen {
   display: grid;

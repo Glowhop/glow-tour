@@ -13,7 +13,7 @@ describe("react bridge", () => {
     assert.equal(typeof GlowTour.Footer, "function");
     assert.equal(typeof GlowTour.Popover, "function");
     assert.equal(typeof GlowTour.Overlay, "function");
-    assert.equal(typeof GlowTour.PreviousTrigger, "function");
+    assert.equal(typeof GlowTour.BackTrigger, "function");
     assert.equal(typeof GlowTour.NextTrigger, "function");
   });
 
@@ -35,12 +35,12 @@ describe("react bridge", () => {
     const [path] = GlowTour.Overlay({}).props.children;
     assert.equal(path.type, "path");
     assert.equal("data-glow-tour-overlay-path" in path.props, true);
-    assert.equal(GlowTour.PreviousTrigger({}).props.type, "button");
-    assert.equal(GlowTour.PreviousTrigger({}).props["aria-label"], "Previous step");
-    assert.equal(GlowTour.PreviousTrigger({}).props["aria-keyshortcuts"], "ArrowLeft");
-    assert.equal(GlowTour.PreviousTrigger({}).props["aria-controls"], "glow-tour-popover");
-    assert.equal(GlowTour.PreviousTrigger({ previousLabel: "back" }).props.children, "back");
-    assert.equal("data-glow-tour-previous-trigger" in GlowTour.PreviousTrigger({}).props, true);
+    assert.equal(GlowTour.BackTrigger({}).props.type, "button");
+    assert.equal(GlowTour.BackTrigger({}).props["aria-label"], "Back step");
+    assert.equal(GlowTour.BackTrigger({}).props["aria-keyshortcuts"], "ArrowLeft");
+    assert.equal(GlowTour.BackTrigger({}).props["aria-controls"], "glow-tour-popover");
+    assert.equal(GlowTour.BackTrigger({}).props.children, "back");
+    assert.equal("data-glow-tour-back-trigger" in GlowTour.BackTrigger({}).props, true);
     assert.equal(GlowTour.NextTrigger({}).props.type, "button");
     assert.equal(GlowTour.NextTrigger({}).props["aria-label"], "Next step");
     assert.equal(GlowTour.NextTrigger({}).props["aria-keyshortcuts"], "Enter ArrowRight");

@@ -238,7 +238,7 @@ describe("vanilla bridge", () => {
       workflow,
       createVanillaRenderer(container, {
         nextLabel: "continue",
-        previousLabel: "back",
+        backLabel: "back",
       }),
     );
     await controller.start();

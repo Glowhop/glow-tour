@@ -24,8 +24,8 @@ export class TutorialService {
     return this.workflow.next();
   }
 
-  previous() {
-    return this.workflow.previous();
+  back() {
+    return this.workflow.back();
   }
 
   cancel() {

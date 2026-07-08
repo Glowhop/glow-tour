@@ -9,7 +9,7 @@ import {
   GlowTourNextTrigger,
   GlowTourOverlay,
   GlowTourPopover,
-  GlowTourPreviousTrigger,
+  GlowTourBackTrigger,
   GlowTourRoot,
   glowTour,
 } from "./index";
@@ -24,7 +24,7 @@ describe("vue bridge", () => {
     assert.equal(typeof GlowTourFooter, "object");
     assert.equal(typeof GlowTourPopover, "object");
     assert.equal(typeof GlowTourOverlay, "object");
-    assert.equal(typeof GlowTourPreviousTrigger, "object");
+    assert.equal(typeof GlowTourBackTrigger, "object");
     assert.equal(typeof GlowTourNextTrigger, "object");
   });
 
@@ -48,11 +48,11 @@ describe("vue bridge", () => {
       focusable: { default: "false", type: String },
       viewBox: { default: "0 0 0 0", type: String },
     });
-    assert.deepEqual(GlowTourPreviousTrigger.props, {
+    assert.deepEqual(GlowTourBackTrigger.props, {
       ariaControls: { default: "glow-tour-popover", type: String },
-      ariaLabel: { default: "Previous step", type: String },
+      ariaLabel: { default: "Back step", type: String },
       ariaKeyshortcuts: { default: "ArrowLeft", type: String },
-      previousLabel: { default: "previous", type: String },
+      backLabel: { default: "back", type: String },
     });
     assert.deepEqual(GlowTourNextTrigger.props, {
       ariaControls: { default: "glow-tour-popover", type: String },

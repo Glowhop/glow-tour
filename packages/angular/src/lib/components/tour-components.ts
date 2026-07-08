@@ -11,8 +11,8 @@ export const GLOW_TOUR_COMPONENT_TEMPLATES = {
     '<section #tourElement data-glow-tour-popover id="glow-tour-popover" role="dialog" aria-labelledby="glow-tour-title" aria-describedby="glow-tour-description"><ng-content /></section>',
   overlay:
     '<svg #tourElement data-glow-tour-overlay aria-hidden="true" role="presentation" focusable="false" viewBox="0 0 0 0"><path data-glow-tour-overlay-path fill-rule="evenodd" /><ng-content /></svg>',
-  previousTrigger:
-    '<button #tourElement type="button" data-action="previous" data-glow-tour-previous-trigger aria-label="Previous step" aria-keyshortcuts="ArrowLeft" aria-controls="glow-tour-popover">{{ previousLabel }}</button>',
+  backTrigger:
+    '<button #tourElement type="button" data-action="back" data-glow-tour-back-trigger aria-label="Back step" aria-keyshortcuts="ArrowLeft" aria-controls="glow-tour-popover">{{ backLabel }}</button>',
   nextTrigger:
     '<button #tourElement type="button" data-action="next" data-glow-tour-next-trigger aria-label="Next step" aria-keyshortcuts="Enter ArrowRight" aria-controls="glow-tour-popover">{{ label }}</button>',
 } as const;
@@ -87,13 +87,13 @@ export class GlowTourOverlay extends GlowTourElementComponent {
 }
 
 @Component({
-  selector: "GlowTourPreviousTrigger",
+  selector: "GlowTourBackTrigger",
   standalone: true,
-  template: GLOW_TOUR_COMPONENT_TEMPLATES.previousTrigger,
+  template: GLOW_TOUR_COMPONENT_TEMPLATES.backTrigger,
 })
-export class GlowTourPreviousTrigger extends GlowTourElementComponent {
-  protected readonly glowTourElementName = "previous-trigger";
-  @Input() previousLabel = "previous";
+export class GlowTourBackTrigger extends GlowTourElementComponent {
+  protected readonly glowTourElementName = "back-trigger";
+  @Input() backLabel = "back";
 }
 
 @Component({

@@ -13,7 +13,7 @@ export interface VanillaRenderer {
 
 export interface VanillaRendererOptions {
   nextLabel?: string;
-  previousLabel?: string;
+  backLabel?: string;
   finishLabel?: string;
 }
 
@@ -54,7 +54,7 @@ export function createVanillaRenderer(
       const props = step.presentation;
       const title = toText(props.title);
       const content = toText(props.content);
-      const previousLabel = options.previousLabel ?? "previous";
+      const backLabel = options.backLabel ?? "back";
       const nextLabel = state.isLastStep
         ? (options.finishLabel ?? options.nextLabel ?? "finish")
         : (options.nextLabel ?? "next");
@@ -64,7 +64,7 @@ export function createVanillaRenderer(
           <h2>${title}</h2>
           <p>${content}</p>
           <footer>
-            <button data-action="prev">${previousLabel}</button>
+            <button data-action="back">${backLabel}</button>
             <button data-action="next">${nextLabel}</button>
             ${cancelButton}
           </footer>

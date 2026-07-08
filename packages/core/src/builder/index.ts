@@ -36,8 +36,8 @@ function cloneStepDefinition<T>(step: StepDefinition<T>): StepDefinition<T> {
     // scroll: step.scroll ? { ...step.scroll } : undefined,
     // animation: step.animation ? { ...step.animation } : undefined,
     behavior: step.behavior ? { ...step.behavior } : undefined,
-    actions: [...step.actions],
-    eventHandlers: [...step.eventHandlers],
+    actions: step.actions ? [...step.actions] : [],
+    eventHandlers: step.eventHandlers ? [...step.eventHandlers] : [],
   };
 }
 
@@ -77,11 +77,13 @@ export class Builder<T> {
       presentation: {
         title: options.title,
         content: options.content,
-        hideFooter: options.hideFooter ?? this.options.step?.hideFooter,
-        hideBackButton: options.hideBackButton ?? this.options.step?.hideBackButton,
-        hideNextButton: options.hideNextButton ?? this.options.step?.hideNextButton,
-        // animated: options.animated ?? this.options.step?.animated,
-        data: options.data ?? this.options.step?.data,
+        hideFooter: options.hideFooter,
+        disableBackButton: options.disableBackButton,
+        hideBackButton: options.hideBackButton,
+        disableNextButton: options.disableNextButton,
+        hideNextButton: options.hideNextButton,
+        resetPropsOnEnter: options.resetPropsOnEnter,
+        data: options.data,
       },
       overlay: options.overlay ?? this.options.overlay,
       popover: options.popover ?? this.options.popover,
@@ -91,7 +93,7 @@ export class Builder<T> {
       actions: [],
       eventHandlers: [],
       nextAction: null,
-      previousAction: null,
+      backAction: null,
       cancelAction: null,
     });
 
@@ -129,21 +131,21 @@ export class Builder<T> {
 }
 
 export class StepBuilder<T> {
-  readonly actions: StepActionInstruction[];
-  readonly eventHandlers: EventHandler[];
-  nextAction: StepTransitionAction | null;
-  previousAction: StepTransitionAction | null;
-  cancelAction: StepTransitionAction | null;
+  readonly actions: StepActionInstruction<T>[];
+  readonly eventHandlers: EventHandler<T>[];
+  nextAction: StepTransitionAction<T> | null;
+  backAction: StepTransitionAction<T> | null;
+  cancelAction: StepTransitionAction<T> | null;
 
   constructor(
     public readonly builder: Builder<T>,
     private definition: StepDefinition<T>,
   ) {
-    this.actions = this.definition.actions;
-    this.eventHandlers = this.definition.eventHandlers;
-    this.nextAction = this.definition.nextAction;
-    this.previousAction = this.definition.previousAction;
-    this.cancelAction = this.definition.cancelAction;
+    this.actions = this.definition.actions ?? [];
+    this.eventHandlers = this.definition.eventHandlers ?? [];
+    this.nextAction = this.definition.nextAction ?? null;
+    this.backAction = this.definition.backAction ?? null;
+    this.cancelAction = this.definition.cancelAction ?? null;
   }
 
   step(options: StepConstructor<T>) {
@@ -159,7 +161,7 @@ export class StepBuilder<T> {
   }
 
   clickTarget() {
-    this.actions.push(async (target) => {
+    this.actions.push(async (target: HTMLElement | null) => {
       target?.click();
       return true;
     });
@@ -167,7 +169,7 @@ export class StepBuilder<T> {
   }
 
   focusTarget() {
-    this.actions.push(async (target) => {
+    this.actions.push(async (target: HTMLElement | null) => {
       target?.focus();
       return true;
     });
@@ -180,11 +182,11 @@ export class StepBuilder<T> {
   }
 
   waitFor(callback: (target: HTMLElement | null) => Promise<boolean> | boolean) {
-    this.actions.push(async (target) => callback(target));
+    this.actions.push(async (target: HTMLElement | null) => callback(target));
     return this;
   }
 
-  alter(callback: StepAction) {
+  alter(callback: StepAction<T>) {
     this.actions.push(callback);
     return this;
   }
@@ -199,52 +201,52 @@ export class StepBuilder<T> {
     return this;
   }
 
-  prev() {
-    this.actions.push("prev");
+  back() {
+    this.actions.push("back");
     return this;
   }
 
   exec(callback: (target: HTMLElement | null) => Promise<void> | void) {
-    this.actions.push(async (target) => {
+    this.actions.push(async (target: HTMLElement | null) => {
       await callback(target);
       return true;
     });
     return this;
   }
 
-  action(callback: StepAction) {
+  action(callback: StepAction<T>) {
     this.actions.push(callback);
     return this;
   }
 
-  onNext(callback: StepTransitionAction) {
+  onNext(callback: StepTransitionAction<T>) {
     this.nextAction = callback;
     this.definition.nextAction = callback;
     return this;
   }
 
-  onPrevious(callback: StepTransitionAction) {
-    this.previousAction = callback;
-    this.definition.previousAction = callback;
+  onBack(callback: StepTransitionAction<T>) {
+    this.backAction = callback;
+    this.definition.backAction = callback;
     return this;
   }
 
-  onCancel(callback: StepTransitionAction) {
+  onCancel(callback: StepTransitionAction<T>) {
     this.cancelAction = callback;
     this.definition.cancelAction = callback;
     return this;
   }
 
-  onEvent(event: string, callback: EventHandler["callback"]) {
+  onEvent(event: string, callback: EventHandler<T>["callback"]) {
     this.eventHandlers.push({ event, callback });
     return this;
   }
 
-  on(event: string, callback: EventHandler["callback"]) {
+  on(event: string, callback: EventHandler<T>["callback"]) {
     return this.onEvent(event, callback);
   }
 
-  toDefinition(): StepDefinition<unknown> {
+  toDefinition(): StepDefinition<T> {
     return {
       ...this.definition,
       presentation: {
@@ -261,7 +263,7 @@ export class StepBuilder<T> {
       actions: [...this.actions],
       eventHandlers: [...this.eventHandlers],
       nextAction: this.nextAction,
-      previousAction: this.previousAction,
+      backAction: this.backAction,
       cancelAction: this.cancelAction,
     };
   }
