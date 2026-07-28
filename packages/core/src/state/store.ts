@@ -1,4 +1,6 @@
 import { Observable } from "@glowhop/observables";
+import OverlayElement from "../elements/overlay";
+import PopoverElement from "../elements/popover";
 import { WorkflowStep } from "../engine/workflow-step";
 import type {
   EventHandler,
@@ -11,9 +13,8 @@ import type {
   WorkflowState,
   WorkflowStatus,
 } from "../types";
-import OverlayElement from "../elements/overlay";
-import PopoverElement from "../elements/popover";
 import { isInViewport } from "../utils/utils";
+import { FocusGuard } from "./focus-guard";
 
 const DEFAULT_TARGET_TIMEOUT = 3000;
 
@@ -44,6 +45,7 @@ export class TourStore<T> {
   private overlayListenerCleanups: ListenerCleanup[] = [];
   // private readonly elements = new Map<GlowTourElementName, Element>();
   private readonly elementListenerCleanups = new Map<GlowTourElementName, ListenerCleanup>();
+  private readonly focusGuard = new FocusGuard();
 
   private overlay: OverlayElement<T> | null = null;
   private popover: PopoverElement<T> | null = null;
@@ -118,6 +120,7 @@ export class TourStore<T> {
 
     if (isFinished) {
       this._detachListeners();
+      this.focusGuard.deactivate();
       this._setStatus("finished");
       this.workflow?.options.onFinish?.();
       await this._disappearElements();
@@ -157,6 +160,7 @@ export class TourStore<T> {
     }
 
     this._detachListeners();
+    this.focusGuard.deactivate();
     this._setStatus("cancelled");
     this.workflow?.options.onCancel?.();
     await this._disappearElements();
@@ -204,7 +208,7 @@ export class TourStore<T> {
       return;
     }
 
-    popover.moveToTarget(target.getBoundingClientRect(), step, appear, () => {
+    await popover.moveToTarget(target.getBoundingClientRect(), step, appear, () => {
       this.snapshot.set(this._createSnapshot());
     });
   }
@@ -216,7 +220,7 @@ export class TourStore<T> {
       return;
     }
 
-    overlay.moveToTarget(target.getBoundingClientRect(), step);
+    await overlay.moveToTarget(target.getBoundingClientRect(), step);
   }
 
   async goTo(index: number, direction: WorkflowDirection = "next") {
@@ -248,6 +252,7 @@ export class TourStore<T> {
     ]);
 
     this._setStatus("idle");
+    this._syncFocusGuard(target, step.definition);
     this._attachListeners(step);
 
     if (step.actions) {
@@ -258,6 +263,7 @@ export class TourStore<T> {
   destroy() {
     this._detachListeners();
     this._detachElementListeners();
+    this.focusGuard.deactivate();
   }
 
   private _setWorkflow(workflow: WorkflowDefinition<T>) {
@@ -286,6 +292,7 @@ export class TourStore<T> {
     if (strategy === "skip") {
       const nextIndex = index + 1;
       if (nextIndex >= this.steps.length) {
+        this.focusGuard.deactivate();
         this._setStatus("finished");
         this.workflow?.options.onFinish?.();
       } else {
@@ -308,6 +315,7 @@ export class TourStore<T> {
     }
 
     this.error = new Error(`Missing target: ${step.definition.target}`);
+    this.focusGuard.deactivate();
     this._setStatus("error");
     return null;
   }
@@ -320,6 +328,25 @@ export class TourStore<T> {
   private _syncDerivedState() {
     this._syncPopoverStates();
     this._syncOverlayStates();
+  }
+
+  private _syncFocusGuard(target: HTMLElement, step: StepDefinition<T>) {
+    const popover = this.popover?.getElement();
+    if (!popover) {
+      console.warn("No popover element registered");
+      return;
+    }
+
+    if (!(popover instanceof HTMLElement)) {
+      console.warn("No popover element found");
+      return;
+    }
+
+    this.focusGuard.activate({
+      popover,
+      allowedTarget: target,
+      allowTargetInteraction: step.behavior?.allowInteraction === true,
+    });
   }
 
   private _createSnapshot(): WorkflowState<T> {
